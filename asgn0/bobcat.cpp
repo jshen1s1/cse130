@@ -8,7 +8,7 @@
 #include <err.h>
 
 int main(int argc, char* argv[]){
-    uint64_t fd; //fd as file descripter
+    int64_t fd; //fd as file descripter
     char in[8192]; //use to store the char read from stdin 
 
     if(argc == 1){ //if no file specified in command
