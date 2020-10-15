@@ -7,7 +7,7 @@
 #include <err.h>
 
 int main(int argc, char* argv[]){
-    int fd; //fd as file descripter
+    uint64_t fd; //fd as file descripter
     char in[8192]; //use to store the char read from stdin 
 
     if(argc == 1){ //if no file specified in command
@@ -16,7 +16,7 @@ int main(int argc, char* argv[]){
         }
     }
     else{
-        for (int i=1; i< argc; i++){ //go through all files specified in command
+        for (size_t i=1; i< argc; i++){ //go through all files specified in command
             if(!strcmp(argv[i], "-")){ //if '-' as input
                 while(read(0, in, 1) > 0){
                     write(1, in, 1);
