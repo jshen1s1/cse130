@@ -4,6 +4,7 @@
 #include <string.h>
 #include <fcntl.h> 
 #include <error.h>
+#include <err.h>
 
 int main(int argc, char* argv[]){
     int fd; //fd as file descripter
@@ -26,7 +27,7 @@ int main(int argc, char* argv[]){
                 fd = open(argv[i], O_RDONLY); 
 
                 if(fd < 0){
-                    perror(argv[i]); //gives an error message when cannot access file
+                    warn("%s", argv[i]); //gives an error message when cannot access file
                     exit(1);
                 }else{
                     while(read(fd, in, 1)>0){ //read from the file
