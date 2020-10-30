@@ -51,10 +51,11 @@ int64_t mathFun(uint8_t buffer[], char op, uint8_t *ifError, size_t *pointer){
         return a-b;
     }
     else{
-        if(a > LONG_MAX / b){
-            *ifError = 22;
+        if(a == 0 | b == 0){
+            return 0;
         }
-        else if(a < LONG_MIN / b){
+
+        if(abs(a) > LONG_MAX / abs(b) && a!=0 && b!=0){
             *ifError = 22;
         }
         else if(a == LONG_MIN && b == -1){
@@ -66,6 +67,7 @@ int64_t mathFun(uint8_t buffer[], char op, uint8_t *ifError, size_t *pointer){
         else{
             *ifError = 0;
         }
+        
         return a*b;
     }
     
@@ -102,8 +104,8 @@ int64_t fileMod(uint8_t buffer[], char op, uint8_t *ifError){
     bufsize = (uint16_t)buffer[pointer] << 8 | buffer[pointer+1];
     pointer += 2;
     printf("bufsize: %04x, %zu\n", bufsize, pointer);
-    /*
-    for(size_t k=0; k<bufsize; k++){
+    
+    /*for(size_t k=0; k<bufsize; k++){
         fileBuf[k] = buffer[pointer];
         pointer += 1;
     }*/
@@ -230,7 +232,7 @@ int main(int argc, char* argv[]){
                     case 0x0103 :
                         result = mathFun(recvBuf, '*', &ifError, &pointer);
                         sendBuf[sPointer] = ifError;
-                        printf("Mul function called: %04x\n", function);
+                        printf("Mul function called: %04x, get %016lx\n", function, result);
                         break;
                     case 0x0201 :
                         result = fileMod(recvBuf, 'r', &ifError);
@@ -259,7 +261,6 @@ int main(int argc, char* argv[]){
                     sPointer += 1;
                     for(size_t k=1; k<=sizeof(result); k++){
                         sendBuf[k+sPointer-1] = result >> 8*(sizeof(result) - k) & 0xff;
-                        printf("%02x %d", sendBuf[k+sPointer], k+sPointer);
                     }
                     sPointer += sizeof(result);
                 }
