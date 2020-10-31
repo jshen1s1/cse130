@@ -220,9 +220,9 @@ int main(int argc, char* argv[]){
                     sPointer = 0;
                     ifError = 0;
                 }
-                for(size_t i=0; i<recvSize; i++){ //for testing print what received
-                    printf("%02x", recvBuf[i]);
-                }
+                // for(size_t i=0; i<recvSize; i++){ //for testing print what received
+                //     printf("%02x", recvBuf[i]);
+                // }
                 printf("\nBytes recvied: %zu\n", recvSize);
 
                 function = (uint16_t)recvBuf[pointer] << 8 | recvBuf[pointer+1]; //record the function called
@@ -306,17 +306,17 @@ int main(int argc, char* argv[]){
                     sendSize += 2;
                 }
 
-                for(size_t i=0; i<sPointer; i++){ //for testing print what send
-                    printf("%02x", sendBuf[i]);
-                }
-                printf("\n");
+                // for(size_t i=0; i<sPointer; i++){ //for testing print what send
+                //     printf("%02x", sendBuf[i]);
+                // }
+                // printf("\n");
 
                 if(write(cl, sendBuf, sendSize) <= 0){ //send the sendBuf to client
                     printf("Write failed");
                 }
 
                 recvSize = read(cl, &recvBuf, 16384);
-                printf("\nBytes read: %zu\n", recvSize);
+                //printf("\nBytes read: %zu\n", recvSize);
             }while(recvSize > 0 && recvSize < 16384); //if there's more from the client repeat
 
             pointer = 0;
