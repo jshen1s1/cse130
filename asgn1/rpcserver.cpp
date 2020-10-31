@@ -74,7 +74,7 @@ int64_t mathFun(uint8_t buffer[], char op, uint8_t *ifError, size_t *pointer){ /
     return 0;
 }
 
-int64_t fileMod(uint8_t buffer[], char op, uint8_t *ifError, uint8_t *readBuf){
+int64_t fileMod(uint8_t buffer[], char op, uint8_t *ifError, uint8_t *readBuf, uint8_t *sendBuf){
     size_t pointer = 8;
     char* fileName;
     uint64_t offset;
@@ -82,7 +82,8 @@ int64_t fileMod(uint8_t buffer[], char op, uint8_t *ifError, uint8_t *readBuf){
     uint8_t fileBuf[8192];
     uint16_t fileNameSize;
     int64_t fd;
-    int64_t res;
+    uint16_t count = 0;
+    int64_t res = 0;
 
     fileNameSize = (uint16_t)buffer[6] << 8 | buffer[7]; //retrive filename size
     char fname[fileNameSize+1];
@@ -105,31 +106,35 @@ int64_t fileMod(uint8_t buffer[], char op, uint8_t *ifError, uint8_t *readBuf){
     pointer += 2;
     printf("bufsize: %04x\n", bufsize);
 
-    fd = open(fileName, O_RDONLY); //open file
+    fd = open(fileName, O_RDWR); //open file
     if(fd < 0){
         *ifError = 2;
-        return -1;
+        return 0;
     }
     if(lseek(fd, offset, SEEK_SET)<0){ //set to offset
         *ifError = errno;
-        return -1;
+        return 0;
     }
 
     if(op == 'r'){
-        res = read(fd, readBuf, bufsize); //read from file and store to read buffer 
+        while((count += read(fd, readBuf, 1)) > 0 && res <= bufsize){ //read from file and store to read buffer         
+            res += 1;
+            sendBuf[res+7-1] = readBuf[0];
+        }
+        res -= 1;
         if(res<0){
             *ifError = errno;
-            return -1;
+            return 0;
         }
     }else{
         for(size_t k=0; k<bufsize; k++){ //retrive the write buffer
             fileBuf[k] = buffer[pointer];
             pointer += 1;
         }
-        res = write(fd, fileBuf, bufsize); //write to the file
+        res += write(fd, fileBuf, bufsize); //write to the file
         if(res<0){
             *ifError = errno;
-            return -1;
+            return 0;
         }
     }
 
@@ -200,7 +205,7 @@ int main(int argc, char* argv[]){
     int64_t result;
     size_t recvSize;
     uint8_t ifError; //store error#
-    uint8_t readBuf[8192]; //store read data
+    uint8_t readBuf[1]; //store read data
     size_t pointer; //tracks the recvBuf position
     size_t sPointer; //tracks the sendBuf position
     size_t sendSize; 
@@ -255,13 +260,13 @@ int main(int argc, char* argv[]){
                         printf("Mul function called: %04x, get %016lx\n", function, result);
                         break;
                     case 0x0201 :
-                        result = fileMod(recvBuf, 'r', &ifError, readBuf);
+                        result = fileMod(recvBuf, 'r', &ifError, readBuf, sendBuf);
                         sendBuf[sPointer] = ifError;
-                        sendSize = 7+result;
-                        printf("Read function called: %04x\n", function);
+                        sendSize = 5+result;
+                        printf("Read function called: %04x, send: %zu\n", function, sendSize);
                         break;
                     case 0x0202 :
-                        result = fileMod(recvBuf, 'w', &ifError, readBuf);
+                        result = fileMod(recvBuf, 'w', &ifError, readBuf, sendBuf);
                         sendBuf[sPointer] = ifError;
                         sendSize = 5;
                         printf("Write function called: %04x\n", function);
@@ -282,22 +287,23 @@ int main(int argc, char* argv[]){
                         break;
                 }
 
-                sPointer += 1;
+                
                 if(sendBuf[sPointer] == 0 && function != 0x0210 && function != 0x0201){ //if no error and function is not create or read write the result to the send buffer
+                    sPointer += 1;
                     for(size_t k=1; k<=sizeof(result); k++){ //store the result to the send buffer
                         sendBuf[k+sPointer-1] = result >> 8*(sizeof(result) - k) & 0xff;
                     }
                     sPointer += sizeof(result);
                 }
                 if(sendBuf[sPointer] == 0  && function == 0x0201){ //if read function called
+                    sPointer += 1;
                     for(size_t k=1; k<=2; k++){ //store the buffer length to the send buffer
                         sendBuf[k+sPointer-1] = (uint16_t) result >> 8*(2 - k) & 0xff;
                     }
                     sPointer += 2;
-                    for(size_t k=0; k<(size_t)result; k++){ //store the read buffer to the send buffer
-                        sendBuf[k+sPointer] = readBuf[k];
-                    }
+
                     sPointer += result;
+                    sendSize += 2;
                 }
 
                 for(size_t i=0; i<sPointer; i++){ //for testing print what send
