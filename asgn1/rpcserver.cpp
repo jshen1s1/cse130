@@ -207,7 +207,7 @@ int main(int argc, char* argv[]){
     do{
         int cl = accept(sock, NULL, NULL);
         recvSize = read(cl, &recvBuf, 16384); //read from client
-        if(recvSize > 0){
+        if(recvSize > 4){
             do{
                 if(pointer!=0){ //reset variables if get more than one argument from client
                     memset(sendBuf, 0, sizeof(sendBuf));
@@ -281,7 +281,7 @@ int main(int argc, char* argv[]){
                     default:
                         break;
                 }
-                
+
                 sPointer += 1;
                 if(sendBuf[sPointer] == 0 && function != 0x0210 && function != 0x0201){ //if no error and function is not create or read write the result to the send buffer
                     for(size_t k=1; k<=sizeof(result); k++){ //store the result to the send buffer
