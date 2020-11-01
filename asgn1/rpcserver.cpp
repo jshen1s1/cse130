@@ -117,21 +117,21 @@ int64_t fileMod(uint8_t buffer[], char op, uint8_t *ifError, uint8_t *readBuf, u
     }
 
     if(op == 'r'){
-        while(read(fd, readBuf, 1) > 0 && res <= bufsize){ //read from file and store to read buffer         
+        while(read(fd, readBuf, 1) > 0 && res < bufsize){ //read from file and store to read buffer         
             res += 1;
-            if(res+7-1 >= 16377){
+            if(res+7-1 >= 16377){ //if read more than sendBuf can store
                 sendBuf[5] = bufsize >> 8 & 0xff;
                 sendBuf[6] = bufsize & 0xff;
-                write(cl,sendBuf, 16384);
-                while(read(fd, readBuf, 1) > 0 && res <= bufsize){
+                write(cl,sendBuf, 16384); //send back current buffer
+                while(read(fd, readBuf, 1) > 0 && res < bufsize){
                     res += 1;
-                    write(cl,readBuf,1);
+                    write(cl,readBuf,1); //send back whatever read
                 }
             }else{
                 sendBuf[res+7-1] = readBuf[0];
             }
         }
-        res -= 1;
+        
         if(res<0){
             *ifError = errno;
             return 0;
@@ -221,22 +221,22 @@ int main(int argc, char* argv[]){
     size_t pointer; //tracks the recvBuf position
     size_t sPointer; //tracks the sendBuf position
     size_t sendSize; 
-    size_t cmdLength = 0;
+    size_t cmdLength = 0; 
     uint8_t timer = 0;
     do{
         int cl = accept(sock, NULL, NULL);
-        while(cmdLength < 8){
+        while(cmdLength < 8){ //if recv size is not enough for function check, identifier, file size, read more
             recvSize = read(cl, recvPos, 16384); //read from client
             cmdLength += recvSize;
             recvPos = cmdLength + recvBuf;
             timer += 1;
-            if(timer > 50){
+            if(timer > 50){ //get out of loop if client don't provide enough information
                 break;
             }
         }
         timer = 0;
 
-        if(cmdLength >= 8){
+        if(cmdLength >= 8 && cmdLength <= 16384){
             do{
                 if(pointer!=0){ //reset variables if get more than one argument from client
                     memset(sendBuf, 0, sizeof(sendBuf));
@@ -266,7 +266,7 @@ int main(int argc, char* argv[]){
 
                 switch(function){ //goto different function call
                     case 0x0101 :
-                        while(cmdLength < 22){
+                        while(cmdLength < 22){ //read to 22 bytes for math functions
                             recvSize = read(cl, recvPos, 16384); //read from client
                             cmdLength += recvSize;
                             recvPos = cmdLength + recvBuf;
@@ -282,7 +282,7 @@ int main(int argc, char* argv[]){
                         printf("Add function called: %04x, get %016lx, size %lu\n", function, result, sizeof(result));
                         break;
                     case 0x0102 :
-                        while(cmdLength < 22){
+                        while(cmdLength < 22){ //read to 22 bytes for math functions
                             recvSize = read(cl, recvPos, 16384); //read from client
                             cmdLength += recvSize;
                             recvPos = cmdLength + recvBuf;
@@ -298,7 +298,7 @@ int main(int argc, char* argv[]){
                         printf("Sub function called: %04x, get %016lx\n", function, result);
                         break;
                     case 0x0103 :
-                        while(cmdLength < 22){
+                        while(cmdLength < 22){ //read to 22 bytes for math functions
                             recvSize = read(cl, recvPos, 16384); //read from client
                             cmdLength += recvSize;
                             recvPos = cmdLength + recvBuf;
@@ -317,7 +317,7 @@ int main(int argc, char* argv[]){
                         sendSize = 7;
                         result = fileMod(recvBuf, 'r', &ifError, readBuf, sendBuf, cl);
                         sendBuf[sPointer] = ifError;
-                        sendSize = 5+result;
+                        sendSize = 7+result;
                         printf("Read function called: %04x, send: %zu\n", function, sendSize);
                         break;
                     case 0x0202 :
@@ -329,7 +329,7 @@ int main(int argc, char* argv[]){
                         break;
                     case 0x0210 :
                         fileNameSize = (uint16_t)recvBuf[pointer] << 8 | recvBuf[pointer+1]; //retrive file name size
-                        while(cmdLength < 7+fileNameSize){
+                        while(cmdLength < 7+fileNameSize){ //read to 7+fileNameSize bytes for create functions
                             recvSize = read(cl, recvPos, 16384); //read from client
                             cmdLength += recvSize;
                             recvPos = cmdLength + recvBuf;
@@ -346,7 +346,7 @@ int main(int argc, char* argv[]){
                         break;
                     case 0x0220 :
                         fileNameSize = (uint16_t)recvBuf[pointer] << 8 | recvBuf[pointer+1]; //retrive file name size
-                        while(cmdLength < 7+fileNameSize){
+                        while(cmdLength < 7+fileNameSize){ //read to 7+fileNameSize bytes for filesize functions
                             recvSize = read(cl, recvPos, 16384); //read from client
                             cmdLength += recvSize;
                             recvPos = cmdLength + recvBuf;
@@ -380,18 +380,23 @@ int main(int argc, char* argv[]){
                     sPointer += 2;
 
                     sPointer += result;
-                    sendSize += 2;
                 }
+
+                //  for(size_t i=0; i<sendSize; i++){ //for testing print what sent
+                //      printf("%02x", sendBuf[i]);
+                //  }
+                // printf("\nBytes sent: %zu\n", sendSize);
+
 
                 if(write(cl, sendBuf, sendSize) <= 0){ //send the sendBuf to client
                     printf("Write failed");
                 }
 
-                cmdLength = 0;
+                cmdLength = 0;  //reset variables
                 memset(recvBuf, 0, sizeof(recvBuf));
                 recvPos = recvBuf;
                 while(cmdLength < 8){
-                    recvSize = read(cl, recvPos, 16384); //read from client
+                    recvSize = read(cl, recvPos, 16384); //read from client again
                     cmdLength += recvSize;
                     recvPos = cmdLength + recvBuf;
                     timer += 1;
@@ -399,14 +404,13 @@ int main(int argc, char* argv[]){
                         break;
                     }
                 }
-                printf("cmdLength: %zu\n", cmdLength);
                 if(timer > 50){
                     break;
                 }
                 timer = 0;
             }while(cmdLength > 0 && cmdLength < 16384); //if there's more from the client repeat
 
-            cmdLength = 0;
+            cmdLength = 0;  //reset variables
             memset(recvBuf, 0, sizeof(recvBuf));
             recvPos = recvBuf;
             pointer = 0;
