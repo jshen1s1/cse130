@@ -74,7 +74,7 @@ int64_t mathFun(uint8_t buffer[], char op, uint8_t *ifError, size_t *pointer){ /
     return 0;
 }
 
-int64_t fileMod(uint8_t buffer[], char op, uint8_t *ifError, uint8_t *readBuf, uint8_t *sendBuf){
+int64_t fileMod(uint8_t buffer[], char op, uint8_t *ifError, uint8_t *readBuf, uint8_t *sendBuf, int cl){
     size_t pointer = 8;
     char* fileName;
     uint64_t offset;
@@ -82,7 +82,7 @@ int64_t fileMod(uint8_t buffer[], char op, uint8_t *ifError, uint8_t *readBuf, u
     uint8_t fileBuf[8192];
     uint16_t fileNameSize;
     int64_t fd;
-    uint16_t count = 0;
+    //uint16_t count = 0;
     int64_t res = 0;
 
     fileNameSize = (uint16_t)buffer[6] << 8 | buffer[7]; //retrive filename size
@@ -117,10 +117,16 @@ int64_t fileMod(uint8_t buffer[], char op, uint8_t *ifError, uint8_t *readBuf, u
     }
 
     if(op == 'r'){
-        while((count += read(fd, readBuf, 1)) > 0 && res <= bufsize){ //read from file and store to read buffer         
+        while(read(fd, readBuf, 1) > 0 && res <= bufsize){ //read from file and store to read buffer         
             res += 1;
-            if(res+7-1 >= 16384){
-
+            if(res+7-1 >= 16377){
+                sendBuf[5] = bufsize >> 8 & 0xff;
+                sendBuf[6] = bufsize & 0xff;
+                write(cl,sendBuf, 16384);
+                while(read(fd, readBuf, 1) > 0 && res <= bufsize){
+                    res += 1;
+                    write(cl,readBuf,1);
+                }
             }else{
                 sendBuf[res+7-1] = readBuf[0];
             }
@@ -308,13 +314,15 @@ int main(int argc, char* argv[]){
                         printf("Mul function called: %04x, get %016lx\n", function, result);
                         break;
                     case 0x0201 :
-                        result = fileMod(recvBuf, 'r', &ifError, readBuf, sendBuf);
+                        sendSize = 7;
+                        result = fileMod(recvBuf, 'r', &ifError, readBuf, sendBuf, cl);
                         sendBuf[sPointer] = ifError;
                         sendSize = 5+result;
                         printf("Read function called: %04x, send: %zu\n", function, sendSize);
                         break;
                     case 0x0202 :
-                        result = fileMod(recvBuf, 'w', &ifError, readBuf, sendBuf);
+                        sendSize = 5;
+                        result = fileMod(recvBuf, 'w', &ifError, readBuf, sendBuf, cl);
                         sendBuf[sPointer] = ifError;
                         sendSize = 5;
                         printf("Write function called: %04x\n", function);
@@ -364,7 +372,7 @@ int main(int argc, char* argv[]){
                     }
                     sPointer += sizeof(result);
                 }
-                if(sendBuf[sPointer] == 0  && function == 0x0201){ //if read function called
+                if(sendBuf[sPointer] == 0  && function == 0x0201 && result < 16378){ //if read function called
                     sPointer += 1;
                     for(size_t k=1; k<=2; k++){ //store the buffer length to the send buffer
                         sendBuf[k+sPointer-1] = (uint16_t) result >> 8*(2 - k) & 0xff;
@@ -391,7 +399,7 @@ int main(int argc, char* argv[]){
                         break;
                     }
                 }
-                printf("cmdLength: %d\n", cmdLength);
+                printf("cmdLength: %zu\n", cmdLength);
                 if(timer > 50){
                     break;
                 }
