@@ -123,10 +123,11 @@ int64_t fileMod(uint8_t buffer[], char op, uint8_t *ifError, uint8_t *readBuf, u
                 sendBuf[5] = bufsize >> 8 & 0xff;
                 sendBuf[6] = bufsize & 0xff;
                 write(cl,sendBuf, 16384); //send back current buffer
-                while(read(fd, readBuf, 1) > 0 && res < bufsize){
+                while(read(fd, readBuf, 1) > 0 && res <= bufsize){
                     res += 1;
                     write(cl,readBuf,1); //send back whatever read
                 }
+                res -= 1;
             }else{
                 sendBuf[res+7-1] = readBuf[0];
             }
@@ -223,6 +224,7 @@ int main(int argc, char* argv[]){
     size_t sendSize; 
     size_t cmdLength = 0; 
     uint8_t timer = 0;
+    uint8_t alreadySent = 0;
     do{
         int cl = accept(sock, NULL, NULL);
         while(cmdLength < 8){ //if recv size is not enough for function check, identifier, file size, read more
@@ -236,7 +238,7 @@ int main(int argc, char* argv[]){
         }
         timer = 0;
 
-        if(cmdLength >= 8 && cmdLength <= 16384){
+        if(cmdLength >= 8){
             do{
                 if(pointer!=0){ //reset variables if get more than one argument from client
                     memset(sendBuf, 0, sizeof(sendBuf));
@@ -318,7 +320,7 @@ int main(int argc, char* argv[]){
                         result = fileMod(recvBuf, 'r', &ifError, readBuf, sendBuf, cl);
                         sendBuf[sPointer] = ifError;
                         sendSize = 7+result;
-                        printf("Read function called: %04x, send: %zu\n", function, sendSize);
+                        printf("Read function called: %04x, get: %zu\n", function, result);
                         break;
                     case 0x0202 :
                         sendSize = 5;
@@ -380,6 +382,8 @@ int main(int argc, char* argv[]){
                     sPointer += 2;
 
                     sPointer += result;
+                }else{
+                    alreadySent = 1;
                 }
 
                 //  for(size_t i=0; i<sendSize; i++){ //for testing print what sent
@@ -387,12 +391,14 @@ int main(int argc, char* argv[]){
                 //  }
                 // printf("\nBytes sent: %zu\n", sendSize);
 
-
-                if(write(cl, sendBuf, sendSize) <= 0){ //send the sendBuf to client
-                    printf("Write failed");
+                if(alreadySent == 0){
+                    if(write(cl, sendBuf, sendSize) <= 0){ //send the sendBuf to client
+                        printf("Write failed");
+                    }
                 }
 
                 cmdLength = 0;  //reset variables
+                alreadySent = 0;
                 memset(recvBuf, 0, sizeof(recvBuf));
                 recvPos = recvBuf;
                 while(cmdLength < 8){
@@ -416,6 +422,7 @@ int main(int argc, char* argv[]){
             pointer = 0;
             sPointer = 0;
             timer = 0;
+            alreadySent = 0;
         }
         else if(cmdLength==0){ //for testing
             printf("Connection closed\n");
