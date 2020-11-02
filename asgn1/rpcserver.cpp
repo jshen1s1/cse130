@@ -238,7 +238,7 @@ int main(int argc, char* argv[]){
         }
         timer = 0;
 
-        if(cmdLength >= 8){
+        if(cmdLength >= 8 && cmdLength <= 16384){
             do{
                 if(pointer!=0){ //reset variables if get more than one argument from client
                     memset(sendBuf, 0, sizeof(sendBuf));
@@ -382,7 +382,7 @@ int main(int argc, char* argv[]){
                     sPointer += 2;
 
                     sPointer += result;
-                }else{
+                }else if(sendBuf[sPointer] == 0  && function == 0x0201 && result > 16378){
                     alreadySent = 1;
                 }
 
@@ -416,13 +416,13 @@ int main(int argc, char* argv[]){
                 timer = 0;
             }while(cmdLength > 0 && cmdLength < 16384); //if there's more from the client repeat
 
+            alreadySent = 0;
             cmdLength = 0;  //reset variables
             memset(recvBuf, 0, sizeof(recvBuf));
             recvPos = recvBuf;
             pointer = 0;
             sPointer = 0;
             timer = 0;
-            alreadySent = 0;
         }
         else if(cmdLength==0){ //for testing
             printf("Connection closed\n");
