@@ -11,8 +11,10 @@
 #include <errno.h>
 #include <limits.h>
 #include <fcntl.h>
+#include <pthread.h>
 
-unsigned int DJBHash(char* str, unsigned int length) {
+//DJBHash cited from https://www.programmingalgorithms.com/algorithm/djb-hash/c/
+unsigned int DJBHash(char* str, unsigned int length) { 
 	unsigned int hash = 5381;
 	unsigned int i = 0;
 
@@ -24,10 +26,202 @@ unsigned int DJBHash(char* str, unsigned int length) {
 	return hash;
 }
 
+typedef struct Ht_item Ht_item;
 
+struct Ht_item
+{
+    char* key;
+    int64_t value;
+    Ht_item* next;
+};
 
+typedef struct HashTable HashTable;
 
+struct HashTable
+{
+    size_t size;
+    Ht_item** items;
+    size_t count;
+};
 
+Ht_item* createItem(char* n, int64_t v){
+    Ht_item* item = (Ht_item *)malloc(sizeof(Ht_item));
+    item->key = n;
+    item->value = v;
+    item->next = NULL;
+    return item;
+}
+
+HashTable* createTable(int s){
+    HashTable* table = (HashTable *)malloc(sizeof(HashTable));
+    table->size = s;
+    table->count = 0;
+    table->items = (Ht_item**) calloc (table->size, sizeof(Ht_item*));
+    for (int i=0; i<table->size; i++){
+        table->items[i] = NULL;
+    }
+    return table;
+}
+
+void freeItem(Ht_item* i){
+    free(i->key);
+    free(i->next);
+    free(i);
+}
+
+void freeTable(HashTable* t){
+    for(size_t i=0; i<t->size; i++){
+        Ht_item* item = t->items[i];
+        if(item != NULL){
+            freeItem(item);
+        }
+    }
+}
+
+void insert(HashTable* t, char* k, int64_t v){
+    Ht_item* item = createItem(k, v);
+    unsigned int index = DJBHash(k, strlen(k)) % t->size;
+    Ht_item* curr = t->items[index];
+    if(curr == NULL){
+        if(t->count > t->size){
+            printf("Insert Error: Hash Table is full\n");
+            freeItem(item);
+            return;
+        }
+        t->items[index] = item;
+        t->count += 1;
+    }else{
+        if(k == curr->key){
+            curr->value = v;
+            return;
+        }else{
+            while(curr->next != NULL){
+                curr = curr->next;
+                if(k == curr->key){
+                    curr->value = v;
+                    return;
+                }
+            }
+            curr->next = item;
+        }
+    }
+    return;
+}
+
+void replacement(HashTable* t, char* k, int64_t v){
+    unsigned int index = DJBHash(k, strlen(k)) % t->size;
+    Ht_item* curr = t->items[index];
+    if(curr == NULL){
+        return;
+    }else{
+        if(curr->key == k){
+            curr->value = v;
+            return;
+        }else{
+            while(curr->next != NULL){
+                curr = curr->next;
+                if(curr->key == k){
+                    curr->value = v;
+                    return;
+                }
+            }
+        }
+    }
+    return;
+}
+
+void del(HashTable* t, char* k){
+    unsigned int index = DJBHash(k, strlen(k)) % t->size;
+    Ht_item* curr = t->items[index];
+    if(curr == NULL){
+        return;
+    }else{
+        if(curr->next == NULL && curr->key == k){
+            t->items[index] = NULL;
+            freeItem(curr);
+            t->count -= 1;
+            return;
+        }else{
+            if(curr->key == k){
+                t->items[index] = curr->next;
+                t->count -= 1;
+                return;
+            }
+            Ht_item* prev = NULL;
+            while(curr->next != NULL){
+                prev = curr;
+                curr = curr->next;
+                if(curr->key == k){
+                    prev->next = curr->next;
+                    freeItem(curr);
+                    return;
+                }
+            }
+        }
+    }
+    return;
+}
+
+int64_t lookUp(HashTable* t, char* k){
+    unsigned int index = DJBHash(k, strlen(k)) % t->size;
+    Ht_item* curr = t->items[index];
+    while(curr != NULL){
+        if(curr-> key == k){
+            return curr->value;
+        }
+        if(curr-> next == NULL){
+            return NULL;
+        }
+        curr = curr->next;
+    }
+    return NULL;
+}
+
+void dump(HashTable* t, char* fileName){
+    int64_t fd = open(fileName, O_RDWR);
+    if(fd < 0){
+        printf("Error!");   
+        exit(1); 
+        //return;
+    }
+
+    for(size_t i=0; i<t->size; i++){
+        Ht_item* curr = t->items[i];
+        if(curr != NULL){
+            dprintf(fd,"%s=%ld\n", curr->key, curr->value);
+            if(curr->next != NULL){
+                curr = curr->next;
+                while(curr != NULL){
+                    dprintf(fd,"%s=%ld\n", curr->key, curr->value);
+                    curr = curr->next;
+                }
+            }
+        }
+    }
+    close(fd);
+    return;
+}
+
+void load(HashTable* t, char* fileName){
+    char k[32];
+    int64_t v;
+    int64_t fd = open(fileName, O_RDWR);
+    if(fd < 0){
+        printf("Error!");   
+        exit(1); 
+        //return;
+    }
+    FILE* fp = fdopen(fd, "c+");
+    if(fp){
+        while(fscanf(fp,"%s=%ld\n", k, v) != EOF){
+            insert(t, k, v);
+        }
+    }
+
+    close(fd);
+    fclose(fp);
+    return;
+}
 
 int64_t mathFun(uint8_t buffer[], char op, uint8_t *ifError, size_t *pointer){ //contains add, sub, mul 
     int64_t a;
@@ -211,6 +405,20 @@ int main(int argc, char* argv[]){
     hostname = strtok(argv[1], s);
     port = strtok(NULL, s);
 
+    int opt;
+    int N = 4;
+    int H = 32;
+    while((opt = getopt(argc,argv, "H:N: ")) != -1){
+        switch(opt){
+            case 'N':
+                N = atoi(optarg);
+                break;
+            case 'H':
+                H = atoi(optarg);
+                break;
+        }
+    }
+
     struct hostent *hent = gethostbyname(hostname); //setup sockets
     struct sockaddr_in addr;
     memcpy(&addr.sin_addr.s_addr, hent->h_addr, hent->h_length);
@@ -224,7 +432,6 @@ int main(int argc, char* argv[]){
     bind(sock, (struct sockaddr *)&addr, sizeof(addr));
     listen(sock, 0);
     
-
     uint8_t recvBuf[16384];
     uint8_t sendBuf[16384];
     uint8_t* recvPos = recvBuf;
@@ -241,6 +448,10 @@ int main(int argc, char* argv[]){
     size_t cmdLength = 0; 
     uint8_t timer = 0;
     uint8_t alreadySent = 0;
+    
+    pthread_t threadList[N];
+    HashTable* ht = createTable(H);
+    
     do{
         int cl = accept(sock, NULL, NULL);
         while(cmdLength < 8){ //if recv size is not enough for function check, identifier, file size, read more
