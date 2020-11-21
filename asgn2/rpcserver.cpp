@@ -95,7 +95,7 @@ void insert(HashTable* t, char* k, int64_t v){
     printf("%s=%ld at %d\n", item->key, item->value, index);
     Ht_item* curr = t->items[index];
     if(curr == NULL){
-        if(t->count > t->size){
+        if(t->count >= t->size){
             printf("Insert Error: Hash Table is full\n");
             return;
         }
@@ -972,6 +972,7 @@ int main(int argc, char* argv[]){
                 break;
         }
     }
+    printf("%d, %d\n", H, N);
 
     struct hostent *hent = gethostbyname(hostname); //setup sockets
     struct sockaddr_in addr;
@@ -1009,14 +1010,12 @@ int main(int argc, char* argv[]){
     Thread threads[N];    
     HashTable* ht = createTable(H);
 
-    char name[31] = "t";
-    char* key = name;
-    char name2[31] = "t2";
-    char* key2 = name2;
-    insert(ht, key, 1);
-    insert(ht, key2, 2);
-
-    
+    // char name[31] = "t";
+    // char* key = name;
+    // char name2[31] = "t2";
+    // char* key2 = name2;
+    // insert(ht, key, 1);
+    // insert(ht, key2, 2);
     //if (0 != sem_init(&mainMutex, 0, 0)) err(2,"sem_init mainMutex");
     //pthread_t threadPointer;
 
