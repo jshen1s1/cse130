@@ -207,7 +207,7 @@ void printAll(HashTable* t){
 }
 
 int dump(HashTable* t, char* fileName){
-    int64_t fd = open(fileName, O_RDWR);
+    int64_t fd = open(fileName, O_RDWR | O_CREAT);
     if(fd < 0){
         printf("No such file\n"); 
         return errno;
@@ -1231,6 +1231,7 @@ int main(int argc, char* argv[]){
                         result = fileFun(recvBuf, 'l', &ifError, &pointer, ht);
                         sendBuf[sPointer] = ifError;
                         sendSize = 5;
+                        printAll(ht);
                         printf("Load function called: %04x\n", function);
                         break;
                     case 0x0300 :
