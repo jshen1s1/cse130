@@ -1010,12 +1010,6 @@ int main(int argc, char* argv[]){
     Thread threads[N];    
     HashTable* ht = createTable(H);
 
-    // char name[31] = "t";
-    // char* key = name;
-    // char name2[31] = "t2";
-    // char* key2 = name2;
-    // insert(ht, key, 1);
-    // insert(ht, key2, 2);
     //if (0 != sem_init(&mainMutex, 0, 0)) err(2,"sem_init mainMutex");
     //pthread_t threadPointer;
 
