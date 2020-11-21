@@ -953,12 +953,6 @@ int64_t fileFun(uint8_t buffer[], char op, uint8_t *ifError, size_t *pointer, Ha
 
 
 int main(int argc, char* argv[]){
-    char* port; //get hostname and port number from argv
-    char* hostname;
-    const char* s = ":";
-    hostname = strtok(argv[1], s);
-    port = strtok(NULL, s);
-
     int opt;
     int N = 4;
     int H = 32;
@@ -973,6 +967,12 @@ int main(int argc, char* argv[]){
         }
     }
     printf("%d, %d\n", H, N);
+
+    char* port; //get hostname and port number from argv
+    char* hostname;
+    const char* s = ":";
+    hostname = strtok(argv[optind], s);
+    port = strtok(NULL, s);
 
     struct hostent *hent = gethostbyname(hostname); //setup sockets
     struct sockaddr_in addr;
