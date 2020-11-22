@@ -42,7 +42,7 @@ format:
 	clang-format -i $(SOURCES) $(INCLUDES)
 
 $(TARGET): $(OBJECTS)
-	$(CXX) $(LDFLAGS) -o $@ $(OBJECTS)
+	$(CXX) $(LDFLAGS) -pthread -o $@ $(OBJECTS)
 
 -include $(DEPS)
 
