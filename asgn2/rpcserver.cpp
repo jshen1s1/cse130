@@ -109,7 +109,6 @@ void insert(HashTable* t, char* k, int64_t v){
         }
         t->items[index] = item;
         t->count += 1;
-        printf("insert %s\n", item->key);
     }else{
         if(strcmp(curr->key, k) == 0){
             curr->value = v;
@@ -1256,15 +1255,16 @@ void process(int cl, HashTable* ht) {
         }
         else{ //for testing
             printf("Recv failed\n");
-            exit(EXIT_FAILURE);
+            return;
         }
+    return;
 }
 
 void* start(void* arg) {
     thread_data* td = (thread_data*)arg;
     while (true) {
         printf("Thread waiting\n");
-        if (0 != sem_wait(&td->t->mutex)) err(2,"sem_wait in thread");
+        if (0 != sem_wait(&(td->t->mutex))) err(2,"sem_wait in thread");
         process(td->t->cl, td->ht);
         td->t->cl = 0;
         if (0 != sem_post(&mainMutex)) err(2,"sem_post of main by thread");
@@ -1305,7 +1305,7 @@ int main(int argc, char* argv[]){
     port = strtok(NULL, s);
 
     Thread threads[N];    
-    thread_data td; //store thread and hash table
+    thread_data td[N]; //store thread and hash table
     HashTable* ht = createTable(H);
     int availableT = 0;
     
@@ -1317,9 +1317,9 @@ int main(int argc, char* argv[]){
         Thread* thread = threads+i;
         if (0 != sem_init(&(thread->mutex), 0, 0)) err(2,"sem_init for thread");
         thread->cl = 0;
-        td.t = thread;
-        td.ht = ht;
-        if (0 != pthread_create(&threadPointer,0,start, &td)) err(2,"pthread_create"); //pass both thread and hash table to start function
+        td[i].t = thread;
+        td[i].ht = ht;
+        if (0 != pthread_create(&threadPointer,0,start, &td[i])) err(2,"pthread_create"); //pass both thread and hash table to start function
     }
 
     struct hostent *hent = gethostbyname(hostname); //setup sockets
@@ -1355,16 +1355,19 @@ int main(int argc, char* argv[]){
     uint8_t alreadySent = 0;
     uint32_t magicN;*/
     
-
     do{
         int cl = accept(sock, NULL, NULL);
         availableT = findWorker(threads,N); //find available thread
+        printf("availableT: %d\n", availableT);
         while(availableT == -1){ // wait until find one
             if (0 != sem_wait(&mainMutex)) err(2,"sem_wait of main by thread");
             availableT = findWorker(threads,N);
         } 
-        threads[availableT].cl = cl; //set thread cl to cl
-        if (0 != sem_post(&threads[availableT].mutex)) err(2,"sem_post in thread"); // signal the thread to start process
+        Thread* thread = threads+availableT;
+        thread->cl = cl; //set thread cl to cl
+        if (0 != sem_post(&(thread->mutex))) err(2,"sem_post in thread"); // signal the thread to start process
+
+        if (0 != sem_wait(&mainMutex)) err(2,"sem_wait in main");
 
         /*while(cmdLength < 8){ //if recv size is not enough for function check, identifier, file size, read more
             recvSize = read(cl, recvPos, 16384); //read from client
