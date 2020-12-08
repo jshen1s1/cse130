@@ -43,6 +43,8 @@ struct Ht_item // stores a variable name and a value and next item
 {
     char* key;
     int64_t value;
+    char* value2;
+    uint8_t flag;
     Ht_item* next;
 };
 
@@ -68,8 +70,21 @@ Ht_item* createItem(char* n, int64_t v){
     strcpy(item->key, n);
     item->value = v;
     item->next = NULL;
+    item->flag = 0;
     return item;
 }
+
+Ht_item* createItem2(char* n, char* v){
+    Ht_item* item = (Ht_item *)malloc(sizeof(Ht_item));
+    item->key = (char*) malloc (strlen(n) + 1);
+    strcpy(item->key, n);
+    item->value2 = (char*) malloc (strlen(v) + 1);
+    strcpy(item->value2, v);
+    item->next = NULL;
+    item->flag = 1;
+    return item;
+}
+
 
 HashTable* createTable(int s){
     HashTable* table = (HashTable *)malloc(sizeof(HashTable));
@@ -118,6 +133,36 @@ void insert(HashTable* t, char* k, int64_t v){
                 curr = curr->next;
                 if(strcmp(curr->key, k) == 0){
                     curr->value = v;
+                    return;
+                }
+            }
+            curr->next = item;
+        }
+    }
+    return;
+}
+
+void insert2(HashTable* t, char* k, char* v){
+    Ht_item* item = createItem2(k, v);
+    unsigned int index = DJBHash(k, strlen(k)) % t->size;
+    printf("%s=%ld at %d\n", item->key, item->value, index);
+    Ht_item* curr = t->items[index];
+    if(curr == NULL){
+        if(t->count >= t->size){
+            printf("Insert Error: Hash Table is full\n");
+            return;
+        }
+        t->items[index] = item;
+        t->count += 1;
+    }else{
+        if(strcmp(curr->key, k) == 0){
+            strcpy(curr->value2, v);
+            return;
+        }else{
+            while(curr->next != NULL){
+                curr = curr->next;
+                if(strcmp(curr->key, k) == 0){
+                    strcpy(curr->value2, v);
                     return;
                 }
             }
