@@ -43,8 +43,10 @@ int64_t mathFun(uint8_t buffer[], char op, uint8_t *ifError, size_t *pointer, Ha
     char* key1;
     char* key2;
     char* key3;
-    int64_t a;
-    int64_t b;
+    int64_t a = 0;
+    int64_t b = 0;
+    //data* d;
+
     oprand = buffer[1] & 0xf0;
     if(buffer[1] == 0x0f){
         nameSize1 = buffer[*pointer];
@@ -443,6 +445,267 @@ int64_t mathFun(uint8_t buffer[], char op, uint8_t *ifError, size_t *pointer, Ha
             key3 = name3;
             *pointer += nameSize3;
             break;
+        case 0xb0:
+            nameSize1 = buffer[*pointer];
+            *pointer += 1;
+            for(size_t i=0; i<nameSize1; i++){ //retrive varName
+                if(i>30){
+                    *ifError = 22;
+                    return 0;
+                }
+                name1[i] = (char) buffer[i+*pointer];
+                if(i==0){
+                    if(name1[0]<65 || (name1[0]>90 && name1[0]<97) || name1[0]>122){
+                        *ifError = 22;
+                        return 0;
+                    }
+                }else{
+                    if(name1[i]<48 || (name1[i]>57 && name1[i]<65) || (name1[i]>90 && name1[i]<95) || name1[i] == 96 || name1[i]>122){
+                        *ifError = 22;
+                        return 0;
+                    }
+                }
+            }
+            *pointer += nameSize1;
+            name1[nameSize1] = (char) '\0';
+            key1 = name1;
+            a = lookUpR(t, key1);
+            if(a == 1234567890){
+                *ifError = 2;
+                return 0;
+            }
+
+            nameSize2 = buffer[*pointer];
+            *pointer += 1;
+            for(size_t i=0; i<nameSize2; i++){ //retrive varName
+                if(i>30){
+                    *ifError = 22;
+                    return 0;
+                }
+                name2[i] = (char) buffer[i+*pointer];
+                if(i==0){
+                    if(name2[0]<65 || (name2[0]>90 && name2[0]<97) || name2[0]>122){
+                        *ifError = 22;
+                        return 0;
+                    }
+                }else{
+                    if(name2[i]<48 || (name2[i]>57 && name2[i]<65) || (name2[i]>90 && name2[i]<95) || name2[i] == 96 || name2[i]>122){
+                        *ifError = 22;
+                        return 0;
+                    }
+                }                
+            }
+            *pointer += nameSize2;
+            name2[nameSize2] = (char) '\0';
+            key2 = name2;
+            b = lookUpR(t, key2);  
+            if(b == 1234567890){
+                *ifError = 2;
+                return 0;
+            } 
+
+            break;
+        case 0xd0:
+            nameSize1 = buffer[*pointer];
+            *pointer += 1;
+            for(size_t i=0; i<nameSize1; i++){ //retrive varName
+                if(i>30){
+                    *ifError = 22;
+                    return 0;
+                }
+                name1[i] = (char) buffer[i+*pointer];
+                if(i==0){
+                    if(name1[0]<65 || (name1[0]>90 && name1[0]<97) || name1[0]>122){
+                        *ifError = 22;
+                        return 0;
+                    }
+                }else{
+                    if(name1[i]<48 || (name1[i]>57 && name1[i]<65) || (name1[i]>90 && name1[i]<95) || name1[i] == 96 || name1[i]>122){
+                        *ifError = 22;
+                        return 0;
+                    }
+                }
+            }
+            *pointer += nameSize1;
+            name1[nameSize1] = (char) '\0';
+            key1 = name1;
+            a = lookUpR(t, key1);
+            if(a == 1234567890){
+                *ifError = 2;
+                return 0;
+            }
+
+            for(size_t j= *pointer; j< *pointer+8; j++){ //retrive next 8 bytes as b
+                b = b << 8 | (int64_t) buffer[j];
+            }
+            *pointer += 8;
+
+            nameSize3 = buffer[*pointer];
+            *pointer += 1;
+            for(size_t i=0; i<nameSize3; i++){ //retrive varName
+                if(i>30){
+                    *ifError = 22;
+                    return 0;
+                }
+                name3[i] = (char) buffer[i+*pointer];
+                if(i==0){
+                    if(name3[0]<65 || (name3[0]>90 && name3[0]<97) || name3[0]>122){
+                        *ifError = 22;
+                        return 0;
+                    }
+                }else{
+                    if(name3[i]<48 || (name3[i]>57 && name3[i]<65) || (name3[i]>90 && name3[i]<95) || name3[i] == 96 || name3[i]>122){
+                        *ifError = 22;
+                        return 0;
+                    }
+                }                
+            }
+            name3[nameSize3] = (char) '\0';
+            key3 = name3;
+            *pointer += nameSize3;
+            break;
+        case 0xe0:
+            for(size_t i= *pointer; i< *pointer+8; i++){ //retrive first 8 bytes as a
+                a = a << 8 | (int64_t) buffer[i];
+            }
+            *pointer += 8;
+
+            nameSize2 = buffer[*pointer];
+            *pointer += 1;
+            for(size_t i=0; i<nameSize2; i++){ //retrive varName
+                if(i>30){
+                    *ifError = 22;
+                    return 0;
+                }
+                name2[i] = (char) buffer[i+*pointer];
+                if(i==0){
+                    if(name2[0]<65 || (name2[0]>90 && name2[0]<97) || name2[0]>122){
+                        *ifError = 22;
+                        return 0;
+                    }
+                }else{
+                    if(name2[i]<48 || (name2[i]>57 && name2[i]<65) || (name2[i]>90 && name2[i]<95) || name2[i] == 96 || name2[i]>122){
+                        *ifError = 22;
+                        return 0;
+                    }
+                }                
+            }
+            *pointer += nameSize2;
+            name2[nameSize2] = (char) '\0';
+            key2 = name2;
+            b = lookUpR(t, key2);  
+            if(b == 1234567890){
+                *ifError = 2;
+                return 0;
+            } 
+
+            nameSize3 = buffer[*pointer];
+            *pointer += 1;
+            for(size_t i=0; i<nameSize3; i++){ //retrive varName
+                if(i>30){
+                    *ifError = 22;
+                    return 0;
+                }
+                name3[i] = (char) buffer[i+*pointer];
+                if(i==0){
+                    if(name3[0]<65 || (name3[0]>90 && name3[0]<97) || name3[0]>122){
+                        *ifError = 22;
+                        return 0;
+                    }
+                }else{
+                    if(name3[i]<48 || (name3[i]>57 && name3[i]<65) || (name3[i]>90 && name3[i]<95) || name3[i] == 96 || name3[i]>122){
+                        *ifError = 22;
+                        return 0;
+                    }
+                }                
+            }
+            name3[nameSize3] = (char) '\0';
+            key3 = name3;
+            *pointer += nameSize3;
+            break;
+        case 0xf0:
+            nameSize1 = buffer[*pointer];
+            *pointer += 1;
+            for(size_t i=0; i<nameSize1; i++){ //retrive varName
+                if(i>30){
+                    *ifError = 22;
+                    return 0;
+                }
+                name1[i] = (char) buffer[i+*pointer];
+                if(i==0){
+                    if(name1[0]<65 || (name1[0]>90 && name1[0]<97) || name1[0]>122){
+                        *ifError = 22;
+                        return 0;
+                    }
+                }else{
+                    if(name1[i]<48 || (name1[i]>57 && name1[i]<65) || (name1[i]>90 && name1[i]<95) || name1[i] == 96 || name1[i]>122){
+                        *ifError = 22;
+                        return 0;
+                    }
+                }
+            }
+            *pointer += nameSize1;
+            name1[nameSize1] = (char) '\0';
+            key1 = name1;
+            a = lookUpR(t, key1);
+            if(a == 1234567890){
+                *ifError = 2;
+                return 0;
+            }
+
+            nameSize2 = buffer[*pointer];
+            *pointer += 1;
+            for(size_t i=0; i<nameSize2; i++){ //retrive varName
+                if(i>30){
+                    *ifError = 22;
+                    return 0;
+                }
+                name2[i] = (char) buffer[i+*pointer];
+                if(i==0){
+                    if(name2[0]<65 || (name2[0]>90 && name2[0]<97) || name2[0]>122){
+                        *ifError = 22;
+                        return 0;
+                    }
+                }else{
+                    if(name2[i]<48 || (name2[i]>57 && name2[i]<65) || (name2[i]>90 && name2[i]<95) || name2[i] == 96 || name2[i]>122){
+                        *ifError = 22;
+                        return 0;
+                    }
+                }                
+            }
+            *pointer += nameSize2;
+            name2[nameSize2] = (char) '\0';
+            key2 = name2;
+            b = lookUpR(t, key2);  
+            if(b == 1234567890){
+                *ifError = 2;
+                return 0;
+            } 
+
+            nameSize3 = buffer[*pointer];
+            *pointer += 1;
+            for(size_t i=0; i<nameSize3; i++){ //retrive varName
+                if(i>30){
+                    *ifError = 22;
+                    return 0;
+                }
+                name3[i] = (char) buffer[i+*pointer];
+                if(i==0){
+                    if(name3[0]<65 || (name3[0]>90 && name3[0]<97) || name3[0]>122){
+                        *ifError = 22;
+                        return 0;
+                    }
+                }else{
+                    if(name3[i]<48 || (name3[i]>57 && name3[i]<65) || (name3[i]>90 && name3[i]<95) || name3[i] == 96 || name3[i]>122){
+                        *ifError = 22;
+                        return 0;
+                    }
+                }                
+            }
+            name3[nameSize3] = (char) '\0';
+            key3 = name3;
+            *pointer += nameSize3;
+            break;
         default:
             for(size_t i= *pointer; i< *pointer+8; i++){ //retrive first 8 bytes as a
                 a = a << 8 | (int64_t) buffer[i];
@@ -691,11 +954,11 @@ int64_t fileFun(uint8_t buffer[], char op, uint8_t *ifError, size_t *pointer, Ha
     char fname[fileNameSize+1]; //retrive file name
     for(size_t i=0; i<fileNameSize; i++){
         fname[i] = (char) buffer[i+*pointer];
+
     }
     fname[fileNameSize] = (char) '\0';
     fileName = fname;
-    *pointer += fileNameSize;
-    
+    *pointer += fileNameSize;    
 
     if(op == 'c'){
         if(open(fileName, O_CREAT | O_EXCL) < 0){ //create the file 
@@ -757,7 +1020,8 @@ uint8_t getv(uint8_t buffer[], uint8_t *ifError, size_t *pointer, HashTable *ht,
     key1 = name1;
 
     d = lookUp(ht, key1);
-    if(d.flag == 0){
+    printf("%hhu, %s, %zu\n", d.flag, d.n, strlen(d.n));
+    if(d.flag == 3){
         *ifError = 2;
         return 0;
     }else if(strlen(d.n) == 0){
@@ -857,6 +1121,7 @@ void process(int cl, HashTable* ht) {
     uint8_t timer = 0;
     uint8_t alreadySent = 0;
     uint32_t magicN;
+    uint8_t done = 0;
 
     while(cmdLength < 8){ //if recv size is not enough for function check, identifier, file size, read more
         recvSize = read(cl, recvPos, 16384); //read from client
@@ -876,15 +1141,15 @@ void process(int cl, HashTable* ht) {
                 pointer = 0;
                 sPointer = 0;
                 ifError = 0;
+                done = 0;
+                printf("reset\n");
             }
             for(size_t i=0; i<cmdLength; i++){ //for testing print what received
                 printf("%02x", recvBuf[i]);
             }
             printf("\nBytes recvied: %zu\n", cmdLength);
 
-            f1 = recvBuf[0];
-            f2 = recvBuf[1] & 0x0f;
-            function = (uint16_t)f1 << 8 | f2; //record the function called
+            function = (uint16_t)recvBuf[0] << 8 | recvBuf[1];
             pointer += 2;
             printf("Function called: %04x\n", function);
 
@@ -899,54 +1164,109 @@ void process(int cl, HashTable* ht) {
             pointer += 4;
             printf("identifier: %08x\n", identifier);
 
-            switch(function){ //goto different function call
+            switch(function){
                 case 0x0101 :
+                    while(cmdLength < 22){ //read to 22 bytes for math functions
+                        recvSize = read(cl, recvPos, 16384); //read from client
+                        cmdLength += recvSize;
+                        recvPos = cmdLength + recvBuf;
+                        timer += 1;
+                        if(timer > 50){
+                            break;
+                        }
+                    }
+                    timer = 0;
                     result = mathFun(recvBuf, '+', &ifError, &pointer, ht);
                     sendBuf[sPointer] = ifError;
                     sendSize = 13;
                     if(ifError != 0){
                         sendSize = 5;
                     }
+                    done = 1;
                     printAll(ht);
                     printf("Add function called: %04x, get %016lx, error %02x\n", function, result, ifError);
                     break;
                 case 0x0102 :
+                    while(cmdLength < 22){ //read to 22 bytes for math functions
+                        recvSize = read(cl, recvPos, 16384); //read from client
+                        cmdLength += recvSize;
+                        recvPos = cmdLength + recvBuf;
+                        timer += 1;
+                        if(timer > 50){
+                            break;
+                        }
+                    }
+                    timer = 0;
                     result = mathFun(recvBuf, '-', &ifError, &pointer, ht);
                     sendBuf[sPointer] = ifError;
                     sendSize = 13;
                     if(ifError != 0){
                         sendSize = 5;
                     }
+                    done = 1;
                     printAll(ht);
                     printf("Sub function called: %04x, get %016lx\n", function, result);
                     break;
                 case 0x0103 :
+                    while(cmdLength < 22){ //read to 22 bytes for math functions
+                        recvSize = read(cl, recvPos, 16384); //read from client
+                        cmdLength += recvSize;
+                        recvPos = cmdLength + recvBuf;
+                        timer += 1;
+                        if(timer > 50){
+                            break;
+                        }
+                    }
+                    timer = 0;
                     result = mathFun(recvBuf, '*', &ifError, &pointer, ht);
                     sendBuf[sPointer] = ifError;
                     sendSize = 13;
                     if(ifError != 0){
                         sendSize = 5;
                     }
+                    done = 1;
                     printAll(ht);
                     printf("Mul function called: %04x, get %016lx\n", function, result);
                     break;
                 case 0x0104 :
+                    while(cmdLength < 22){ //read to 22 bytes for math functions
+                        recvSize = read(cl, recvPos, 16384); //read from client
+                        cmdLength += recvSize;
+                        recvPos = cmdLength + recvBuf;
+                        timer += 1;
+                        if(timer > 50){
+                            break;
+                        }
+                    }
+                    timer = 0;
                     result = mathFun(recvBuf, '/', &ifError, &pointer, ht);
                     sendBuf[sPointer] = ifError;
                     sendSize = 13;
                     if(ifError != 0){
                         sendSize = 5;
                     }
+                    done = 1;
                     printAll(ht);
                     printf("Div function called: %04x, get %016lx\n", function, result);
                     break;
                 case 0x0105 :
+                    while(cmdLength < 22){ //read to 22 bytes for math functions
+                        recvSize = read(cl, recvPos, 16384); //read from client
+                        cmdLength += recvSize;
+                        recvPos = cmdLength + recvBuf;
+                        timer += 1;
+                        if(timer > 50){
+                            break;
+                        }
+                    }
+                    timer = 0;
                     result = mathFun(recvBuf, '%', &ifError, &pointer, ht);
                     sendBuf[sPointer] = ifError;
                     sendSize = 13;
                     if(ifError != 0){
                         sendSize = 5;
                     }
+                    done = 1;
                     printAll(ht);
                     printf("Mod function called: %04x, get %016lx\n", function, result);
                     break;
@@ -957,6 +1277,7 @@ void process(int cl, HashTable* ht) {
                     if(ifError != 0){
                         sendSize = 5;
                     }
+                    done = 1;
                     printAll(ht);
                     printf("Getv function called: %04x, get %02lx\n", function, result);
                     break;
@@ -964,6 +1285,7 @@ void process(int cl, HashTable* ht) {
                     result = setv(recvBuf, &ifError, &pointer, ht);
                     sendBuf[sPointer] = ifError;
                     sendSize = 5;
+                    done = 1;
                     printAll(ht);
                     printf("Setv function called: %04x\n", function);
                     break;
@@ -971,6 +1293,7 @@ void process(int cl, HashTable* ht) {
                     result = mathFun(recvBuf, '*', &ifError, &pointer, ht);
                     sendBuf[sPointer] = ifError;
                     sendSize = 5;
+                    done = 1;
                     printAll(ht);
                     printf("Del function called: %04x, get %016lx\n", function, result);
                     break;
@@ -991,65 +1314,9 @@ void process(int cl, HashTable* ht) {
                     sendSize = 5;
                     printf("Write function called: %04x\n", function);
                     break;
-                case 0x0301 :
-                    fileNameSize = (uint16_t)recvBuf[pointer] << 8 | recvBuf[pointer+1]; //retrive file name size
-                    while(cmdLength < 7+fileNameSize){ //read to 7+fileNameSize bytes for filesize functions
-                        recvSize = read(cl, recvPos, 16384); //read from client
-                        cmdLength += recvSize;
-                        recvPos = cmdLength + recvBuf;
-                        timer += 1;
-                        if(timer > 50){
-                            break;
-                        }
-                    }
-                    timer = 0;
-                    result = fileFun(recvBuf, 'd', &ifError, &pointer, ht);
-                    sendBuf[sPointer] = ifError;
-                    sendSize = 5;
-                    printf("Dump function called: %04x\n", function);
-                    break;
-                case 0x0302 :
-                    fileNameSize = (uint16_t)recvBuf[pointer] << 8 | recvBuf[pointer+1]; //retrive file name size
-                    while(cmdLength < 7+fileNameSize){ //read to 7+fileNameSize bytes for filesize functions
-                        recvSize = read(cl, recvPos, 16384); //read from client
-                        cmdLength += recvSize;
-                        recvPos = cmdLength + recvBuf;
-                        timer += 1;
-                        if(timer > 50){
-                            break;
-                        }
-                    }
-                    timer = 0;
-                    result = fileFun(recvBuf, 'l', &ifError, &pointer, ht);
-                    sendBuf[sPointer] = ifError;
-                    sendSize = 5;
-                    printAll(ht);
-                    printf("Load function called: %04x\n", function);
-                    break;
-                case 0x0300 :
-                    for(size_t j=pointer; j<pointer+4; j++){ //for testing
-                        magicN = magicN << 8 | recvBuf[j];
-                    }                        
-                    pointer += 4;
-                    if(magicN == 0x0badbad0){
-                        freeTable(ht);
-                    }else{
-                        ifError = 22;
-                    }
-                    printAll(ht);
-                    sendBuf[sPointer] = ifError; 
-                    sendSize = 5;
-                    printf("Clear function called: %04x\n", function);
-                    break;
-                default:
-                    break;
-            }
-
-            function = (uint16_t)recvBuf[0] << 8 | recvBuf[1];
-            switch(function){
                 case 0x0210 :
                     fileNameSize = (uint16_t)recvBuf[pointer] << 8 | recvBuf[pointer+1]; //retrive file name size
-                    while(cmdLength < 7+fileNameSize){ //read to 7+fileNameSize bytes for create functions
+                    while(cmdLength < 8+fileNameSize){ //read to 8+fileNameSize bytes for create functions
                         recvSize = read(cl, recvPos, 16384); //read from client
                         cmdLength += recvSize;
                         recvPos = cmdLength + recvBuf;
@@ -1066,7 +1333,7 @@ void process(int cl, HashTable* ht) {
                     break;
                 case 0x0220 :
                     fileNameSize = (uint16_t)recvBuf[pointer] << 8 | recvBuf[pointer+1]; //retrive file name size
-                    while(cmdLength < 7+fileNameSize){ //read to 7+fileNameSize bytes for filesize functions
+                    while(cmdLength < 8+fileNameSize){ //read to 8+fileNameSize bytes for filesize functions
                         recvSize = read(cl, recvPos, 16384); //read from client
                         cmdLength += recvSize;
                         recvPos = cmdLength + recvBuf;
@@ -1084,9 +1351,123 @@ void process(int cl, HashTable* ht) {
                     }
                     printf("Filesize function called: %04x, get %016lx\n", function, result);
                     break;
+                case 0x0301 :
+                    fileNameSize = (uint16_t)recvBuf[pointer] << 8 | recvBuf[pointer+1]; //retrive file name size
+                    while(cmdLength < 8+fileNameSize){ //read to 8+fileNameSize bytes for filesize functions
+                        recvSize = read(cl, recvPos, 16384); //read from client
+                        cmdLength += recvSize;
+                        recvPos = cmdLength + recvBuf;
+                        timer += 1;
+                        if(timer > 50){
+                            break;
+                        }
+                    }
+                    timer = 0;
+                    result = fileFun(recvBuf, 'd', &ifError, &pointer, ht);
+                    sendBuf[sPointer] = ifError;
+                    sendSize = 5;
+                    printf("Dump function called: %04x\n", function);
+                    break;
+                case 0x0302 :
+                    fileNameSize = (uint16_t)recvBuf[pointer] << 8 | recvBuf[pointer+1]; //retrive file name size
+                    while(cmdLength < 8+fileNameSize){ //read to 8+fileNameSize bytes for filesize functions
+                        recvSize = read(cl, recvPos, 16384); //read from client
+                        cmdLength += recvSize;
+                        recvPos = cmdLength + recvBuf;
+                        timer += 1;
+                        if(timer > 50){
+                            break;
+                        }
+                    }
+                    timer = 0;
+                    result = fileFun(recvBuf, 'l', &ifError, &pointer, ht);
+                    sendBuf[sPointer] = ifError;
+                    sendSize = 5;
+                    printAll(ht);
+                    printf("Load function called: %04x\n", function);
+                    break;
+                case 0x0310 :
+                    for(size_t j=pointer; j<pointer+4; j++){ //for testing
+                        magicN = magicN << 8 | recvBuf[j];
+                    }                        
+                    pointer += 4;
+                    if(magicN == 0x0badbad0){
+                        //freeTable(ht);
+                        printf("clear\n");
+                    }else{
+                        ifError = 22;
+                    }
+                    sendBuf[sPointer] = ifError; 
+                    sendSize = 5;
+                    printf("Clear function called: %04x\n", function);
                 default :
                     break;
             }
+
+            f1 = recvBuf[0];
+            f2 = recvBuf[1] & 0x0f;
+            function = (uint16_t)f1 << 8 | f2; //record the function called
+
+            switch(function){ //goto different function call
+                case 0x0101 :
+                    if(done==1){break;}
+                    result = mathFun(recvBuf, '+', &ifError, &pointer, ht);
+                    sendBuf[sPointer] = ifError;
+                    sendSize = 13;
+                    if(ifError != 0){
+                        sendSize = 5;
+                    }
+                    printAll(ht);
+                    printf("Add function called: %04x, get %016lx, error %02x\n", function, result, ifError);
+                    break;
+                case 0x0102 :
+                    if(done==1){break;}
+                    result = mathFun(recvBuf, '-', &ifError, &pointer, ht);
+                    sendBuf[sPointer] = ifError;
+                    sendSize = 13;
+                    if(ifError != 0){
+                        sendSize = 5;
+                    }
+                    printAll(ht);
+                    printf("Sub function called: %04x, get %016lx\n", function, result);
+                    break;
+                case 0x0103 :
+                    if(done==1){break;}
+                    result = mathFun(recvBuf, '*', &ifError, &pointer, ht);
+                    sendBuf[sPointer] = ifError;
+                    sendSize = 13;
+                    if(ifError != 0){
+                        sendSize = 5;
+                    }
+                    printAll(ht);
+                    printf("Mul function called: %04x, get %016lx\n", function, result);
+                    break;
+                case 0x0104 :
+                    if(done==1){break;}
+                    result = mathFun(recvBuf, '/', &ifError, &pointer, ht);
+                    sendBuf[sPointer] = ifError;
+                    sendSize = 13;
+                    if(ifError != 0){
+                        sendSize = 5;
+                    }
+                    printAll(ht);
+                    printf("Div function called: %04x, get %016lx\n", function, result);
+                    break;
+                case 0x0105 :
+                    if(done==1){break;}
+                    result = mathFun(recvBuf, '%', &ifError, &pointer, ht);
+                    sendBuf[sPointer] = ifError;
+                    sendSize = 13;
+                    if(ifError != 0){
+                        sendSize = 5;
+                    }
+                    printAll(ht);
+                    printf("Mod function called: %04x, get %016lx\n", function, result);
+                    break;
+                default:
+                    break;
+            }
+
             
             if(sendBuf[sPointer] == 0 && function != 0x0210 && function != 0x0201 && function != 0x0108){ //if no error and function is not create or read write the result to the send buffer
                 sPointer += 1;
@@ -1148,6 +1529,8 @@ void process(int cl, HashTable* ht) {
         pointer = 0;
         sPointer = 0;
         timer = 0;
+        ifError = 0;
+        done = 0;
     }
     else if(cmdLength==0){ //for testing
         printf("Connection closed\n");

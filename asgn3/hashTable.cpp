@@ -168,6 +168,7 @@ int del(HashTable* t, char* k){
         return -1;
     }else{
         if(curr->next == NULL && strcmp(curr->key, k) == 0){
+            //freeItem(curr);
             t->items[index] = NULL;
             t->count -= 1;
             return 0;
@@ -192,28 +193,49 @@ int del(HashTable* t, char* k){
 }
 
 data lookUp(HashTable* t, char* k){
+    printf("search: %s\n", k);
     unsigned int index = DJBHash(k, strlen(k)) % t->size;
     union data res;
     res.v = 1234567890;
-    res.flag = 0;
+    printf("%d, %ld\n", res.flag, res.v);
     Ht_item* curr = t->items[index];
     while(curr != NULL){
         if(strcmp(curr->key, k) == 0){
             if(curr->flag == 0){
-                res.v = curr->value;
-                res.flag = 0;
+                res.v = (int64_t) curr->value;
             }else{
-                res.flag = 1;
                 strcpy(res.n, curr->value2);
             }
+            printf("%d, %ld\n", res.flag, res.v);
             return res;
         }
         if(curr-> next == NULL){
+            res.flag = 3;
             return res;
         }
         curr = curr->next;
     }
+    res.flag = 3;
     return res;
+}
+
+int64_t lookUpR(HashTable* t, char* k){
+    unsigned int index = DJBHash(k, strlen(k)) % t->size;
+    Ht_item* curr = t->items[index];
+    while(curr != NULL){
+        if(strcmp(curr->key, k) == 0){
+            if(curr->flag == 0){
+                return curr->value;
+            }else{
+                return lookUpR(t,curr->value2);
+            }
+        }
+        if(curr-> next == NULL){
+            return 1234567890;
+        }
+        curr = curr->next;
+    }
+    return 1234567890;
 }
 
 void printAll(HashTable* t){
