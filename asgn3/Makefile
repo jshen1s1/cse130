@@ -7,10 +7,10 @@ TARGET=rpcserver
 
 # A list of all your source files goes here.
 # $(TARGET).cpp means to take the TARGET from above, and stick .cpp on the end.
-SOURCES=$(TARGET).cpp
+#SOURCES=$(TARGET).cpp
 
 # If you had multiple source files, you could do:
-# SOURCES=file1.cpp file2.cpp anotherfile.cpp
+SOURCES=rpcserver.cpp hashTable.cpp 
 
 # These are the flags used to compile and build your code.
 # This line gives you flags with debugging symbols, which you might find useful.
