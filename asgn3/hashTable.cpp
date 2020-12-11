@@ -298,6 +298,7 @@ int dump(HashTable* t, char* fileName){
 int load(HashTable* t, char* fileName){
     char str[5000]; 
     char* k;
+    char varName[32];
     int64_t v;
     int64_t fd = open(fileName, O_RDWR);
     const char* s = "=";
@@ -309,9 +310,23 @@ int load(HashTable* t, char* fileName){
     FILE* fp = fdopen(fd, "r+");
     if(fp){
         while(fscanf(fp, "%s", str) != EOF){
-            printf("%s\n", str);
             k = strtok(str, s);
             v = (int64_t) atoi(strtok(NULL, s));
+            strcpy(varName, k);
+            for(size_t i=0; i<strlen(k); i++){
+                if(i>30){
+                    return 22;
+                }
+                if(i==0){
+                    if(varName[0]<65 || (varName[0]>90 && varName[0]<97) || varName[0]>122){
+                        return 22;
+                    }
+                }else{
+                    if(varName[i]<48 || (varName[i]>57 && varName[i]<65) || (varName[i]>90 && varName[i]<95) || varName[i] == 96 || varName[i]>122){
+                        return 22;
+                    }
+                }
+            }
             insert(t, k, v);
         }
     }else{

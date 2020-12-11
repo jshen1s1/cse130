@@ -32,6 +32,31 @@ struct thread_data { //stores a thread and a hash table
 
 typedef struct thread_data thread_data;
 
+int detect_mul_overflow(int64_t a, int64_t b){
+    if (a == 0 || b == 0){
+        return 0;
+    }
+    a = abs(a);
+    b = abs(b);
+    int64_t result = a * b;
+    if (result > 9223372036854775807 || result/b != a){
+        return 1;
+    }
+    if(a>0 && b>0 && result<0){
+        return 1;
+    }
+    if(a<0 && b<0 && result<0){
+        return 1;
+    }
+    if(a<0 && b>0 && result>0){
+        return 1;
+    }
+    if(a>0 && b<0 && result>0){
+        return 1;
+    }
+    return 0;
+}
+
 int64_t mathFun(uint8_t buffer[], char op, uint8_t *ifError, size_t *pointer, HashTable* t){ //contains add, sub, mul, div, mod 
     uint8_t oprand;
     uint16_t nameSize1 = 0;
@@ -771,18 +796,9 @@ int64_t mathFun(uint8_t buffer[], char op, uint8_t *ifError, size_t *pointer, Ha
         return a-b;
     }
     else if(op == '*' && nameSize3 == 0){
-        if(a == 0 | b == 0){ //overflow test
+        if(detect_mul_overflow(a,b) == 1){
+            *ifError = 75;
             return 0;
-        }
-
-        if(abs(a) > LONG_MAX / abs(b) && a!=0 && b!=0){
-            *ifError = 75;
-        }
-        else if(a == LONG_MIN && b == -1){
-            *ifError = 75;
-        }
-        else if(b == LONG_MIN && a == -1){
-            *ifError = 75;
         }
         else{
             *ifError = 0;
@@ -791,23 +807,14 @@ int64_t mathFun(uint8_t buffer[], char op, uint8_t *ifError, size_t *pointer, Ha
         return a*b;
     }
     else if(op == '*' && nameSize3 != 0){
-        if(a == 0 | b == 0){ //overflow test
-            insert(t, key3, 0);
+        if(detect_mul_overflow(a,b) == 1){
+            *ifError = 75;
             return 0;
-        }
-
-        if(abs(a) > LONG_MAX / abs(b) && a!=0 && b!=0){
-            *ifError = 75;
-        }
-        else if(a == LONG_MIN && b == -1){
-            *ifError = 75;
-        }
-        else if(b == LONG_MIN && a == -1){
-            *ifError = 75;
         }
         else{
             *ifError = 0;
         }
+
         insert(t, key3, a*b);
         return a*b;
     }
@@ -871,7 +878,7 @@ int64_t fileMod(uint8_t buffer[], char op, uint8_t *ifError, uint8_t *readBuf, u
     char* fileName;
     uint64_t offset;
     uint16_t bufsize;
-    uint8_t fileBuf[8192];
+    char fileBuf[8192];
     uint16_t fileNameSize;
     int64_t fd;
     int64_t res = 0;
@@ -902,6 +909,14 @@ int64_t fileMod(uint8_t buffer[], char op, uint8_t *ifError, uint8_t *readBuf, u
         *ifError = 2;
         return 0;
     }
+    struct stat st; //use stat to get file size
+    if(stat(fileName, &st)<0){
+        *ifError = 2; //set ifError to 2 if no such file
+    }
+    if(st.st_size < (int64_t) offset || st.st_size < (int64_t) (bufsize + offset)){
+        *ifError = 22;
+        return 0;
+    }
     if(lseek(fd, offset, SEEK_SET)<0){ //set to offset
         *ifError = errno;
         return 0;
@@ -910,10 +925,10 @@ int64_t fileMod(uint8_t buffer[], char op, uint8_t *ifError, uint8_t *readBuf, u
     if(op == 'r'){
         while(read(fd, readBuf, 1) > 0 && res < bufsize){ //read from file and store to read buffer         
             res += 1;
-            if(res+7-1 >= 16377){ //if read more than sendBuf can store
+            if(res+7-1 >= 65536){ //if read more than sendBuf can store
                 sendBuf[5] = bufsize >> 8 & 0xff;
                 sendBuf[6] = bufsize & 0xff;
-                write(cl,sendBuf, 16384); //send back current buffer
+                write(cl,sendBuf, 65536); //send back current buffer
                 while(read(fd, readBuf, 1) > 0 && res <= bufsize){
                     res += 1;
                     write(cl,readBuf,1); //send back whatever read
@@ -930,9 +945,10 @@ int64_t fileMod(uint8_t buffer[], char op, uint8_t *ifError, uint8_t *readBuf, u
         }
     }else{
         for(size_t k=0; k<bufsize; k++){ //retrive the write buffer
-            fileBuf[k] = buffer[pointer];
+            fileBuf[k] = (char) buffer[pointer];
             pointer += 1;
         }
+        printf("%c\n",fileBuf[0]);
         res += write(fd, fileBuf, bufsize); //write to the file
         if(res<0){
             *ifError = errno;
@@ -961,7 +977,7 @@ int64_t fileFun(uint8_t buffer[], char op, uint8_t *ifError, size_t *pointer, Ha
     *pointer += fileNameSize;    
 
     if(op == 'c'){
-        if(open(fileName, O_CREAT | O_EXCL) < 0){ //create the file 
+        if(open(fileName, O_CREAT,0600 | O_EXCL) < 0){ //create the file 
             *ifError = 17; //set ifError to 17 if already exist
             return -1;
         }
@@ -1102,8 +1118,8 @@ int64_t setv(uint8_t buffer[], uint8_t *ifError, size_t *pointer, HashTable *ht)
 
 
 void process(int cl, HashTable* ht) {
-    uint8_t recvBuf[16384];
-    uint8_t sendBuf[16384];
+    uint8_t recvBuf[65536];
+    uint8_t sendBuf[65536];
     uint8_t* recvPos = recvBuf;
     uint8_t f1;
     uint8_t f2;
@@ -1124,7 +1140,7 @@ void process(int cl, HashTable* ht) {
     uint8_t done = 0;
 
     while(cmdLength < 8){ //if recv size is not enough for function check, identifier, file size, read more
-        recvSize = read(cl, recvPos, 16384); //read from client
+        recvSize = read(cl, recvPos, 65536); //read from client
         cmdLength += recvSize;
         recvPos = cmdLength + recvBuf;
         timer += 1;
@@ -1134,7 +1150,7 @@ void process(int cl, HashTable* ht) {
     }
     timer = 0;
 
-    if(cmdLength >= 8 && cmdLength <= 16384){
+    if(cmdLength >= 8 && cmdLength <= 65536){
         do{
             if(pointer!=0){ //reset variables if get more than one argument from client
                 memset(sendBuf, 0, sizeof(sendBuf));
@@ -1167,7 +1183,7 @@ void process(int cl, HashTable* ht) {
             switch(function){
                 case 0x0101 :
                     while(cmdLength < 22){ //read to 22 bytes for math functions
-                        recvSize = read(cl, recvPos, 16384); //read from client
+                        recvSize = read(cl, recvPos, 65536); //read from client
                         cmdLength += recvSize;
                         recvPos = cmdLength + recvBuf;
                         timer += 1;
@@ -1188,7 +1204,7 @@ void process(int cl, HashTable* ht) {
                     break;
                 case 0x0102 :
                     while(cmdLength < 22){ //read to 22 bytes for math functions
-                        recvSize = read(cl, recvPos, 16384); //read from client
+                        recvSize = read(cl, recvPos, 65536); //read from client
                         cmdLength += recvSize;
                         recvPos = cmdLength + recvBuf;
                         timer += 1;
@@ -1209,7 +1225,7 @@ void process(int cl, HashTable* ht) {
                     break;
                 case 0x0103 :
                     while(cmdLength < 22){ //read to 22 bytes for math functions
-                        recvSize = read(cl, recvPos, 16384); //read from client
+                        recvSize = read(cl, recvPos, 65536); //read from client
                         cmdLength += recvSize;
                         recvPos = cmdLength + recvBuf;
                         timer += 1;
@@ -1230,7 +1246,7 @@ void process(int cl, HashTable* ht) {
                     break;
                 case 0x0104 :
                     while(cmdLength < 22){ //read to 22 bytes for math functions
-                        recvSize = read(cl, recvPos, 16384); //read from client
+                        recvSize = read(cl, recvPos, 65536); //read from client
                         cmdLength += recvSize;
                         recvPos = cmdLength + recvBuf;
                         timer += 1;
@@ -1251,7 +1267,7 @@ void process(int cl, HashTable* ht) {
                     break;
                 case 0x0105 :
                     while(cmdLength < 22){ //read to 22 bytes for math functions
-                        recvSize = read(cl, recvPos, 16384); //read from client
+                        recvSize = read(cl, recvPos, 65536); //read from client
                         cmdLength += recvSize;
                         recvPos = cmdLength + recvBuf;
                         timer += 1;
@@ -1308,6 +1324,19 @@ void process(int cl, HashTable* ht) {
                     printf("Read function called: %04x, get: %zu\n", function, result);
                     break;
                 case 0x0202 :
+                    do{
+                        recvSize = read(cl, recvPos, 65536);
+                        cmdLength += recvSize;
+                        recvPos = cmdLength + recvBuf;
+                        timer += 1;
+                        if(timer > 50){
+                            break;
+                        }
+                        if(recvSize < 4096){
+                            break;
+                        }
+                    }while(recvSize>0);
+                    timer = 0;
                     sendSize = 5;
                     result = fileMod(recvBuf, 'w', &ifError, readBuf, sendBuf, cl);
                     sendBuf[sPointer] = ifError;
@@ -1317,7 +1346,7 @@ void process(int cl, HashTable* ht) {
                 case 0x0210 :
                     fileNameSize = (uint16_t)recvBuf[pointer] << 8 | recvBuf[pointer+1]; //retrive file name size
                     while(cmdLength < 8+fileNameSize){ //read to 8+fileNameSize bytes for create functions
-                        recvSize = read(cl, recvPos, 16384); //read from client
+                        recvSize = read(cl, recvPos, 65536); //read from client
                         cmdLength += recvSize;
                         recvPos = cmdLength + recvBuf;
                         timer += 1;
@@ -1334,7 +1363,7 @@ void process(int cl, HashTable* ht) {
                 case 0x0220 :
                     fileNameSize = (uint16_t)recvBuf[pointer] << 8 | recvBuf[pointer+1]; //retrive file name size
                     while(cmdLength < 8+fileNameSize){ //read to 8+fileNameSize bytes for filesize functions
-                        recvSize = read(cl, recvPos, 16384); //read from client
+                        recvSize = read(cl, recvPos, 65536); //read from client
                         cmdLength += recvSize;
                         recvPos = cmdLength + recvBuf;
                         timer += 1;
@@ -1354,7 +1383,7 @@ void process(int cl, HashTable* ht) {
                 case 0x0301 :
                     fileNameSize = (uint16_t)recvBuf[pointer] << 8 | recvBuf[pointer+1]; //retrive file name size
                     while(cmdLength < 8+fileNameSize){ //read to 8+fileNameSize bytes for filesize functions
-                        recvSize = read(cl, recvPos, 16384); //read from client
+                        recvSize = read(cl, recvPos, 65536); //read from client
                         cmdLength += recvSize;
                         recvPos = cmdLength + recvBuf;
                         timer += 1;
@@ -1371,7 +1400,7 @@ void process(int cl, HashTable* ht) {
                 case 0x0302 :
                     fileNameSize = (uint16_t)recvBuf[pointer] << 8 | recvBuf[pointer+1]; //retrive file name size
                     while(cmdLength < 8+fileNameSize){ //read to 8+fileNameSize bytes for filesize functions
-                        recvSize = read(cl, recvPos, 16384); //read from client
+                        recvSize = read(cl, recvPos, 65536); //read from client
                         cmdLength += recvSize;
                         recvPos = cmdLength + recvBuf;
                         timer += 1;
@@ -1384,7 +1413,7 @@ void process(int cl, HashTable* ht) {
                     sendBuf[sPointer] = ifError;
                     sendSize = 5;
                     printAll(ht);
-                    printf("Load function called: %04x\n", function);
+                    printf("Load function called: %04x, %d\n", function, ifError);
                     break;
                 case 0x0310 :
                     for(size_t j=pointer; j<pointer+4; j++){ //for testing
@@ -1476,7 +1505,7 @@ void process(int cl, HashTable* ht) {
                 }
                 sPointer += sizeof(result);
             }
-            if(sendBuf[sPointer] == 0  && function == 0x0201 && result < 16378){ //if read function called
+            if(sendBuf[sPointer] == 0  && function == 0x0201 && result < 65536){ //if read function called
                 sPointer += 1;
                 for(size_t k=1; k<=2; k++){ //store the buffer length to the send buffer
                     sendBuf[k+sPointer-1] = (uint16_t) result >> 8*(2 - k) & 0xff;
@@ -1484,11 +1513,11 @@ void process(int cl, HashTable* ht) {
                 sPointer += 2;
 
                 sPointer += result;
-            }else if(sendBuf[sPointer] == 0  && function == 0x0108 && result < 16378){
+            }else if(sendBuf[sPointer] == 0  && function == 0x0108 && result < 65536){
                 sPointer += 1;
                 sendBuf[sPointer] = (uint8_t) result & 0xff;
                 sPointer += 1;
-            }else if(sendBuf[sPointer] == 0  && function == 0x0201 && result > 16378){
+            }else if(sendBuf[sPointer] == 0  && function == 0x0201 && result > 65536){
                 alreadySent = 1;
             }
 
@@ -1508,7 +1537,7 @@ void process(int cl, HashTable* ht) {
             memset(recvBuf, 0, sizeof(recvBuf));
             recvPos = recvBuf;
             while(cmdLength < 8){
-                recvSize = read(cl, recvPos, 16384); //read from client again
+                recvSize = read(cl, recvPos, 65536); //read from client again
                 cmdLength += recvSize;
                 recvPos = cmdLength + recvBuf;
                 timer += 1;
@@ -1520,7 +1549,7 @@ void process(int cl, HashTable* ht) {
                 break;
             }
             timer = 0;
-        }while(cmdLength > 0 && cmdLength < 16384); //if there's more from the client repeat
+        }while(cmdLength > 0 && cmdLength < 65536); //if there's more from the client repeat
 
         alreadySent = 0;
         cmdLength = 0;  //reset variables
