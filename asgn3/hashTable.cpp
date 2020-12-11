@@ -389,7 +389,7 @@ int loadDir(HashTable* t, char* d){
         printf("No such file directory\n");   
         return -1;
     }
-    int log_fd = openat (dir_fd, "log", O_RDWR);
+    int log_fd = openat (dir_fd, "log", O_CREAT | O_RDWR, 0644);
     if(log_fd < 0){
         printf("No such file \n");   
         return -1;

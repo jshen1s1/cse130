@@ -1093,7 +1093,7 @@ int64_t mathFun(uint8_t buffer[], char op, uint8_t *ifError, size_t *pointer, Ha
     }
     else if(op == '*' && nameSize3 == 0){
         int64_t res = a*b;
-        if(detect_mul_overflow(a,b,res) == 1 && b!=-3){
+        if(detect_mul_overflow(a,b,res) == 1){
             *ifError = 75;
             return 0;
         }
@@ -1298,7 +1298,11 @@ int64_t fileMod(uint8_t buffer[], char op, uint8_t *ifError, uint8_t *readBuf, u
         }
     }else{
         for(size_t k=0; k<bufsize; k++){ //retrive the write buffer
-            fileBuf[k] = (char) buffer[pointer];
+            if(buffer[pointer] == 0x00){
+                fileBuf[k] = ' ';
+            }else{
+                fileBuf[k] = (char) buffer[pointer];
+            }
             pointer += 1;
         }
         printf("%c\n",fileBuf[0]);
