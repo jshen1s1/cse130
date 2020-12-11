@@ -1968,8 +1968,11 @@ int main(int argc, char* argv[]){
     thread_data td[N]; //store thread and hash table
     HashTable* ht = createTable(H);
     int availableT = 0;
-    if(loadDir(ht, d)<0){
-        return(EXIT_FAILURE);
+    if(strcmp(d,"data") == 0){
+    }else{
+        if(loadDir(ht, d)<0){
+            return(EXIT_FAILURE);
+        }
     }
 
     
