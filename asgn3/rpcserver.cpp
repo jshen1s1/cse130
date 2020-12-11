@@ -14,6 +14,7 @@
 #include <fcntl.h>
 #include <pthread.h>
 #include <semaphore.h>
+#include <math.h>
 #include "hashTable.h"
 
 //sample code thread from https://piazza.com/class/kex6x7ets2p35c?cid=291
@@ -32,13 +33,12 @@ struct thread_data { //stores a thread and a hash table
 
 typedef struct thread_data thread_data;
 
-int detect_mul_overflow(int64_t a, int64_t b){
+int detect_mul_overflow(int64_t a, int64_t b, int64_t result){
     if (a == 0 || b == 0){
         return 0;
     }
     a = abs(a);
     b = abs(b);
-    int64_t result = a * b;
     if (result > 9223372036854775807 || result/b != a){
         return 1;
     }
@@ -130,7 +130,7 @@ int64_t mathFun(uint8_t buffer[], char op, uint8_t *ifError, size_t *pointer, Ha
             *pointer += nameSize1;
             key1 = name1;
             a = lookUp(t, key1).v;
-            if(a == 1234567890){
+            if(a == 1234567890 || lookUp(t, key1).flag == 3){
                 *ifError = 2;
                 return 0;
             }
@@ -170,7 +170,7 @@ int64_t mathFun(uint8_t buffer[], char op, uint8_t *ifError, size_t *pointer, Ha
             name2[nameSize2] = (char) '\0';
             key2 = name2;
             b = lookUp(t, key2).v;  
-            if(b == 1234567890){
+            if(b == 1234567890 || lookUp(t, key2).flag == 3){
                 *ifError = 2;
                 return 0;
             }        
@@ -200,7 +200,7 @@ int64_t mathFun(uint8_t buffer[], char op, uint8_t *ifError, size_t *pointer, Ha
             name1[nameSize1] = (char) '\0';
             key1 = name1;
             a = lookUp(t, key1).v;
-            if(a == 1234567890){
+            if(a == 1234567890 || lookUp(t, key1).flag == 3){
                 *ifError = 2;
                 return 0;
             }
@@ -229,7 +229,7 @@ int64_t mathFun(uint8_t buffer[], char op, uint8_t *ifError, size_t *pointer, Ha
             name2[nameSize2] = (char) '\0';
             key2 = name2;
             b = lookUp(t, key2).v;    
-            if(b == 1234567890){
+            if(b == 1234567890 || lookUp(t, key2).flag == 3){
                 *ifError = 2;
                 return 0;
             }        
@@ -294,7 +294,7 @@ int64_t mathFun(uint8_t buffer[], char op, uint8_t *ifError, size_t *pointer, Ha
             name1[nameSize1] = (char) '\0';
             key1 = name1;
             a = lookUp(t, key1).v;
-            if(a == 1234567890){
+            if(a == 1234567890 || lookUp(t, key1).flag == 3){
                 *ifError = 2;
                 return 0;
             }
@@ -358,7 +358,7 @@ int64_t mathFun(uint8_t buffer[], char op, uint8_t *ifError, size_t *pointer, Ha
             name2[nameSize2] = (char) '\0';
             key2 = name2;
             b = lookUp(t, key2).v;   
-            if(b == 1234567890){
+            if(b == 1234567890 || lookUp(t, key2).flag == 3){
                 *ifError = 2;
                 return 0;
             }
@@ -412,7 +412,7 @@ int64_t mathFun(uint8_t buffer[], char op, uint8_t *ifError, size_t *pointer, Ha
             name1[nameSize1] = (char) '\0';
             key1 = name1;
             a = lookUp(t, key1).v;
-            if(a == 1234567890){
+            if(a == 1234567890 || lookUp(t, key1).flag == 3){
                 *ifError = 2;
                 return 0;
             }
@@ -441,7 +441,7 @@ int64_t mathFun(uint8_t buffer[], char op, uint8_t *ifError, size_t *pointer, Ha
             name2[nameSize2] = (char) '\0';
             key2 = name2;
             b = lookUp(t, key2).v;  
-            if(b == 1234567890){
+            if(b == 1234567890 || lookUp(t, key2).flag == 3){
                 *ifError = 2;
                 return 0;
             } 
@@ -470,6 +470,77 @@ int64_t mathFun(uint8_t buffer[], char op, uint8_t *ifError, size_t *pointer, Ha
             key3 = name3;
             *pointer += nameSize3;
             break;
+        case 0x90:
+            nameSize1 = buffer[*pointer];
+            *pointer += 1;
+            for(size_t i=0; i<nameSize1; i++){ //retrive varName
+                if(i>30){
+                    *ifError = 22;
+                    return 0;
+                }
+                name1[i] = (char) buffer[i+*pointer];
+                if(i==0){
+                    if(name1[0]<65 || (name1[0]>90 && name1[0]<97) || name1[0]>122){
+                        *ifError = 22;
+                        return 0;
+                    }
+                }else{
+                    if(name1[i]<48 || (name1[i]>57 && name1[i]<65) || (name1[i]>90 && name1[i]<95) || name1[i] == 96 || name1[i]>122){
+                        *ifError = 22;
+                        return 0;
+                    }
+                }
+            }
+            *pointer += nameSize1;
+            name1[nameSize1] = (char) '\0';
+            key1 = name1;
+            a = lookUpR(t, key1);
+            if(a == 1234567890 || lookUp(t, key1).flag == 3){
+                *ifError = 2;
+                return 0;
+            }
+
+            for(size_t j= *pointer; j< *pointer+8; j++){ //retrive next 8 bytes as b
+                b = b << 8 | (int64_t) buffer[j];
+            }
+            *pointer += 8;
+            break;
+        case 0xa0:
+            for(size_t i= *pointer; i< *pointer+8; i++){ //retrive first 8 bytes as a
+                a = a << 8 | (int64_t) buffer[i];
+            }
+            *pointer += 8;
+
+            nameSize2 = buffer[*pointer];
+            *pointer += 1;
+            for(size_t i=0; i<nameSize2; i++){ //retrive varName
+                if(i>30){
+                    *ifError = 22;
+                    return 0;
+                }
+                name2[i] = (char) buffer[i+*pointer];
+                if(i==0){
+                    if(name2[0]<65 || (name2[0]>90 && name2[0]<97) || name2[0]>122){
+                        *ifError = 22;
+                        return 0;
+                    }
+                }else{
+                    if(name2[i]<48 || (name2[i]>57 && name2[i]<65) || (name2[i]>90 && name2[i]<95) || name2[i] == 96 || name2[i]>122){
+                        *ifError = 22;
+                        return 0;
+                    }
+                }                
+            }
+            *pointer += nameSize2;
+            name2[nameSize2] = (char) '\0';
+            key2 = name2;
+            b = lookUpR(t, key2);  
+            if(b == 1234567890 || lookUp(t, key2).flag == 3){
+                *ifError = 2;
+                return 0;
+            } 
+
+            break;
         case 0xb0:
             nameSize1 = buffer[*pointer];
             *pointer += 1;
@@ -495,7 +566,7 @@ int64_t mathFun(uint8_t buffer[], char op, uint8_t *ifError, size_t *pointer, Ha
             name1[nameSize1] = (char) '\0';
             key1 = name1;
             a = lookUpR(t, key1);
-            if(a == 1234567890){
+            if(a == 1234567890 || lookUp(t, key1).flag == 3){
                 *ifError = 2;
                 return 0;
             }
@@ -524,11 +595,46 @@ int64_t mathFun(uint8_t buffer[], char op, uint8_t *ifError, size_t *pointer, Ha
             name2[nameSize2] = (char) '\0';
             key2 = name2;
             b = lookUpR(t, key2);  
-            if(b == 1234567890){
+            if(b == 1234567890 || lookUp(t, key2).flag == 3){
                 *ifError = 2;
                 return 0;
             } 
 
+            break;
+        case 0xc0:
+            for(size_t i= *pointer; i< *pointer+8; i++){ //retrive first 8 bytes as a
+                a = a << 8 | (int64_t) buffer[i];
+            }
+            *pointer += 8;
+
+            for(size_t j= *pointer; j< *pointer+8; j++){ //retrive next 8 bytes as b
+                b = b << 8 | (int64_t) buffer[j];
+            }
+            *pointer += 8;
+
+            nameSize3 = buffer[*pointer];
+            *pointer += 1;
+            for(size_t i=0; i<nameSize3; i++){ //retrive varName
+                if(i>30){
+                    *ifError = 22;
+                    return 0;
+                }
+                name3[i] = (char) buffer[i+*pointer];
+                if(i==0){
+                    if(name3[0]<65 || (name3[0]>90 && name3[0]<97) || name3[0]>122){
+                        *ifError = 22;
+                        return 0;
+                    }
+                }else{
+                    if(name3[i]<48 || (name3[i]>57 && name3[i]<65) || (name3[i]>90 && name3[i]<95) || name3[i] == 96 || name3[i]>122){
+                        *ifError = 22;
+                        return 0;
+                    }
+                }                
+            }
+            name3[nameSize3] = (char) '\0';
+            key3 = name3;
+            *pointer += nameSize3;
             break;
         case 0xd0:
             nameSize1 = buffer[*pointer];
@@ -555,7 +661,7 @@ int64_t mathFun(uint8_t buffer[], char op, uint8_t *ifError, size_t *pointer, Ha
             name1[nameSize1] = (char) '\0';
             key1 = name1;
             a = lookUpR(t, key1);
-            if(a == 1234567890){
+            if(a == 1234567890 || lookUp(t, key1).flag == 3){
                 *ifError = 2;
                 return 0;
             }
@@ -619,7 +725,7 @@ int64_t mathFun(uint8_t buffer[], char op, uint8_t *ifError, size_t *pointer, Ha
             name2[nameSize2] = (char) '\0';
             key2 = name2;
             b = lookUpR(t, key2);  
-            if(b == 1234567890){
+            if(b == 1234567890 || lookUp(t, key2).flag == 3){
                 *ifError = 2;
                 return 0;
             } 
@@ -673,7 +779,7 @@ int64_t mathFun(uint8_t buffer[], char op, uint8_t *ifError, size_t *pointer, Ha
             name1[nameSize1] = (char) '\0';
             key1 = name1;
             a = lookUpR(t, key1);
-            if(a == 1234567890){
+            if(a == 1234567890 || lookUp(t, key1).flag == 3){
                 *ifError = 2;
                 return 0;
             }
@@ -702,7 +808,7 @@ int64_t mathFun(uint8_t buffer[], char op, uint8_t *ifError, size_t *pointer, Ha
             name2[nameSize2] = (char) '\0';
             key2 = name2;
             b = lookUpR(t, key2);  
-            if(b == 1234567890){
+            if(b == 1234567890 || lookUp(t, key2).flag == 3){
                 *ifError = 2;
                 return 0;
             } 
@@ -796,7 +902,8 @@ int64_t mathFun(uint8_t buffer[], char op, uint8_t *ifError, size_t *pointer, Ha
         return a-b;
     }
     else if(op == '*' && nameSize3 == 0){
-        if(detect_mul_overflow(a,b) == 1){
+        int64_t res = a*b;
+        if(detect_mul_overflow(a,b,res) == 1){
             *ifError = 75;
             return 0;
         }
@@ -807,7 +914,8 @@ int64_t mathFun(uint8_t buffer[], char op, uint8_t *ifError, size_t *pointer, Ha
         return a*b;
     }
     else if(op == '*' && nameSize3 != 0){
-        if(detect_mul_overflow(a,b) == 1){
+        int64_t res = a*b;
+        if(detect_mul_overflow(a,b,res) == 1){
             *ifError = 75;
             return 0;
         }
@@ -873,7 +981,7 @@ int64_t mathFun(uint8_t buffer[], char op, uint8_t *ifError, size_t *pointer, Ha
     return 0;
 }
 
-int64_t fileMod(uint8_t buffer[], char op, uint8_t *ifError, uint8_t *readBuf, uint8_t *sendBuf, int cl){ //cotains read, write
+int64_t fileMod(uint8_t buffer[], char op, uint8_t *ifError, uint8_t *readBuf, uint8_t *sendBuf, int cl, uint8_t* recvPos, size_t cmdLength){ //cotains read, write
     size_t pointer = 8;
     char* fileName;
     uint64_t offset;
@@ -882,6 +990,8 @@ int64_t fileMod(uint8_t buffer[], char op, uint8_t *ifError, uint8_t *readBuf, u
     uint16_t fileNameSize;
     int64_t fd;
     int64_t res = 0;
+    uint8_t timer = 0;
+    size_t recvSize;
 
     fileNameSize = (uint16_t)buffer[6] << 8 | buffer[7]; //retrive filename size
     char fname[fileNameSize+1];
@@ -904,6 +1014,29 @@ int64_t fileMod(uint8_t buffer[], char op, uint8_t *ifError, uint8_t *readBuf, u
     pointer += 2;
     printf("bufsize: %04x\n", bufsize);
 
+    if(bufsize + offset > pow(2,64)-1){
+        *ifError = 22;
+        return 0;
+    }
+
+    if(bufsize>4075 && op == 'w'){
+        do{
+            recvSize = read(cl, recvPos, 65536);
+            printf("%zu\n", recvSize);
+            cmdLength += recvSize;
+            recvPos = cmdLength + buffer;
+            timer += 1;
+            if(timer > 50){
+                break;
+            }
+            if(recvSize < 4096){
+                printf("%zu\n", recvSize);
+                break;
+            }
+        }while(recvSize>0);
+        timer = 0;
+    }
+
     fd = open(fileName, O_RDWR); //open file
     if(fd < 0){
         *ifError = 2;
@@ -913,7 +1046,7 @@ int64_t fileMod(uint8_t buffer[], char op, uint8_t *ifError, uint8_t *readBuf, u
     if(stat(fileName, &st)<0){
         *ifError = 2; //set ifError to 2 if no such file
     }
-    if(st.st_size < (int64_t) offset || st.st_size < (int64_t) (bufsize + offset)){
+    if(op == 'r' && (st.st_size < (int64_t) offset || st.st_size < (int64_t) (bufsize + offset))){
         *ifError = 22;
         return 0;
     }
@@ -977,7 +1110,7 @@ int64_t fileFun(uint8_t buffer[], char op, uint8_t *ifError, size_t *pointer, Ha
     *pointer += fileNameSize;    
 
     if(op == 'c'){
-        if(open(fileName, O_CREAT,0600 | O_EXCL) < 0){ //create the file 
+        if(open(fileName, O_EXCL|O_CREAT,0600 ) < 0){ //create the file 
             *ifError = 17; //set ifError to 17 if already exist
             return -1;
         }
@@ -1139,6 +1272,8 @@ void process(int cl, HashTable* ht) {
     uint32_t magicN;
     uint8_t done = 0;
 
+    //load(ht, "storedValue");
+
     while(cmdLength < 8){ //if recv size is not enough for function check, identifier, file size, read more
         recvSize = read(cl, recvPos, 65536); //read from client
         cmdLength += recvSize;
@@ -1289,7 +1424,7 @@ void process(int cl, HashTable* ht) {
                 case 0x0108 :
                     result = getv(recvBuf, &ifError, &pointer, ht, sendBuf);
                     sendBuf[sPointer] = ifError;
-                    sendSize = 7+result;
+                    sendSize = 6+result;
                     if(ifError != 0){
                         sendSize = 5;
                     }
@@ -1315,7 +1450,7 @@ void process(int cl, HashTable* ht) {
                     break;
                 case 0x0201 :
                     sendSize = 7;
-                    result = fileMod(recvBuf, 'r', &ifError, readBuf, sendBuf, cl);
+                    result = fileMod(recvBuf, 'r', &ifError, readBuf, sendBuf, cl, recvPos, cmdLength);
                     sendBuf[sPointer] = ifError;
                     sendSize = 7+result;
                     if(ifError != 0){
@@ -1324,21 +1459,8 @@ void process(int cl, HashTable* ht) {
                     printf("Read function called: %04x, get: %zu\n", function, result);
                     break;
                 case 0x0202 :
-                    do{
-                        recvSize = read(cl, recvPos, 65536);
-                        cmdLength += recvSize;
-                        recvPos = cmdLength + recvBuf;
-                        timer += 1;
-                        if(timer > 50){
-                            break;
-                        }
-                        if(recvSize < 4096){
-                            break;
-                        }
-                    }while(recvSize>0);
-                    timer = 0;
                     sendSize = 5;
-                    result = fileMod(recvBuf, 'w', &ifError, readBuf, sendBuf, cl);
+                    result = fileMod(recvBuf, 'w', &ifError, readBuf, sendBuf, cl, recvPos, cmdLength);
                     sendBuf[sPointer] = ifError;
                     sendSize = 5;
                     printf("Write function called: %04x\n", function);
@@ -1440,6 +1562,7 @@ void process(int cl, HashTable* ht) {
             switch(function){ //goto different function call
                 case 0x0101 :
                     if(done==1){break;}
+                    printf("%d\n", sPointer);
                     result = mathFun(recvBuf, '+', &ifError, &pointer, ht);
                     sendBuf[sPointer] = ifError;
                     sendSize = 13;
