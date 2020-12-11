@@ -193,11 +193,9 @@ int del(HashTable* t, char* k){
 }
 
 data lookUp(HashTable* t, char* k){
-    printf("search: %s\n", k);
     unsigned int index = DJBHash(k, strlen(k)) % t->size;
     union data res;
     res.v = 1234567890;
-    printf("%d, %ld\n", res.flag, res.v);
     Ht_item* curr = t->items[index];
     while(curr != NULL){
         if(strcmp(curr->key, k) == 0){
@@ -206,7 +204,6 @@ data lookUp(HashTable* t, char* k){
             }else{
                 strcpy(res.n, curr->value2);
             }
-            printf("%d, %ld\n", res.flag, res.v);
             return res;
         }
         if(curr-> next == NULL){
@@ -219,7 +216,11 @@ data lookUp(HashTable* t, char* k){
     return res;
 }
 
-int64_t lookUpR(HashTable* t, char* k){
+int64_t lookUpR(HashTable* t, char* k, int times, int end){
+    if(times>=end){
+        return 1234567890;
+    }
+    times += 1;
     unsigned int index = DJBHash(k, strlen(k)) % t->size;
     Ht_item* curr = t->items[index];
     while(curr != NULL){
@@ -227,7 +228,7 @@ int64_t lookUpR(HashTable* t, char* k){
             if(curr->flag == 0){
                 return curr->value;
             }else{
-                return lookUpR(t,curr->value2);
+                return lookUpR(t,curr->value2, times, end);
             }
         }
         if(curr-> next == NULL){
@@ -295,6 +296,43 @@ int dump(HashTable* t, char* fileName){
     return 0;
 }
 
+int dumpDir(HashTable* t, char* d){
+    int64_t dir_fd = open (d, O_DIRECTORY | O_PATH);
+    if(dir_fd < 0){
+        printf("No such file directory\n"); 
+        return errno;
+    }
+    int64_t fd = openat (dir_fd, "log", O_CREAT | O_RDWR, 0644);
+    if(fd < 0){
+        printf("No such file\n"); 
+        return errno;
+    }
+
+    for(size_t i=0; i<t->size; i++){
+        Ht_item* curr = t->items[i];
+        if(curr != NULL){
+            if(curr->flag == 0){
+                dprintf(fd, "%s=%ld\n", curr->key, curr->value);
+            }else{
+                dprintf(fd, "%s=%s\n", curr->key, curr->value2);
+            }
+            if(curr->next != NULL){
+                curr = curr->next;
+                while(curr != NULL){
+                    if(curr->flag == 0){
+                        dprintf(fd, "%s=%ld\n", curr->key, curr->value);
+                    }else{
+                        dprintf(fd, "%s=%s\n", curr->key, curr->value2);
+                    }
+                    curr = curr->next;
+                }
+            }
+        }
+    }
+    close(fd);
+    return 0;
+}
+
 int load(HashTable* t, char* fileName){
     char str[5000]; 
     char* k;
@@ -307,7 +345,7 @@ int load(HashTable* t, char* fileName){
         printf("No such file\n");   
         return errno;
     }
-    FILE* fp = fdopen(fd, "r+");
+    FILE* fp = fdopen(fd, "a+");
     if(fp){
         while(fscanf(fp, "%s", str) != EOF){
             k = strtok(str, s);
@@ -338,3 +376,53 @@ int load(HashTable* t, char* fileName){
     fclose(fp);
     return 0;
 }
+
+int loadDir(HashTable* t, char* d){
+    char str[5000]; 
+    char* k;
+    char varName[32];
+    int64_t v;
+    int64_t dir_fd = open (d, O_DIRECTORY | O_PATH);
+    const char* s = "=";
+
+    if(dir_fd < 0){
+        printf("No such file directory\n");   
+        return -1;
+    }
+    int log_fd = openat (dir_fd, "log", O_RDWR);
+    if(log_fd < 0){
+        printf("No such file \n");   
+        return -1;
+    }
+    FILE* fp = fdopen(log_fd, "a+");
+    if(fp){
+        while(fscanf(fp, "%s", str) != EOF){
+            k = strtok(str, s);
+            v = (int64_t) atoi(strtok(NULL, s));
+            strcpy(varName, k);
+            for(size_t i=0; i<strlen(k); i++){
+                if(i>30){
+                    return -1;
+                }
+                if(i==0){
+                    if(varName[0]<65 || (varName[0]>90 && varName[0]<97) || varName[0]>122){
+                        return -1;
+                    }
+                }else{
+                    if(varName[i]<48 || (varName[i]>57 && varName[i]<65) || (varName[i]>90 && varName[i]<95) || varName[i] == 96 || varName[i]>122){
+                        return -1;
+                    }
+                }
+            }
+            insert(t, k, v);
+        }
+    }else{
+        printf("Error\n");   
+        return -1;
+    }
+
+    close(log_fd);
+    fclose(fp);
+    return 0;
+}
+

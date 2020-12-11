@@ -45,12 +45,16 @@ int del(HashTable* t, char* k);
 
 data lookUp(HashTable* t, char* k);
 
-int64_t lookUpR(HashTable* t, char* k);
+int64_t lookUpR(HashTable* t, char* k, int times, int end);
 
 void printAll(HashTable* t);
 
 int dump(HashTable* t, char* fileName);
 
+int dumpDir(HashTable* t, char* d);
+
 int load(HashTable* t, char* fileName);
+
+int loadDir(HashTable* t, char* d);
 
 #endif

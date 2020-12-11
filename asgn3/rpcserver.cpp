@@ -21,6 +21,7 @@
 struct Thread {
     sem_t mutex;
     int cl;
+    int I;
 };
 typedef struct Thread Thread;
 
@@ -39,25 +40,13 @@ int detect_mul_overflow(int64_t a, int64_t b, int64_t result){
     }
     a = abs(a);
     b = abs(b);
-    if (result > 9223372036854775807 || result/b != a){
-        return 1;
-    }
-    if(a>0 && b>0 && result<0){
-        return 1;
-    }
-    if(a<0 && b<0 && result<0){
-        return 1;
-    }
-    if(a<0 && b>0 && result>0){
-        return 1;
-    }
-    if(a>0 && b<0 && result>0){
+    if (result > 9223372036854775807 || abs(result/b) != a){
         return 1;
     }
     return 0;
 }
 
-int64_t mathFun(uint8_t buffer[], char op, uint8_t *ifError, size_t *pointer, HashTable* t){ //contains add, sub, mul, div, mod 
+int64_t mathFun(uint8_t buffer[], char op, uint8_t *ifError, size_t *pointer, HashTable* t, int It, int cl, uint8_t* recvPos, size_t cmdLength){ //contains add, sub, mul, div, mod 
     uint8_t oprand;
     uint16_t nameSize1 = 0;
     uint16_t nameSize2 = 0;
@@ -70,7 +59,9 @@ int64_t mathFun(uint8_t buffer[], char op, uint8_t *ifError, size_t *pointer, Ha
     char* key3;
     int64_t a = 0;
     int64_t b = 0;
-    //data* d;
+    size_t requiredLen = 7;
+    size_t recvSize;
+    int timer = 0;
 
     oprand = buffer[1] & 0xf0;
     if(buffer[1] == 0x0f){
@@ -108,6 +99,17 @@ int64_t mathFun(uint8_t buffer[], char op, uint8_t *ifError, size_t *pointer, Ha
         case 0x10:
             nameSize1 = buffer[*pointer];
             *pointer += 1;
+            requiredLen = requiredLen + nameSize1;
+            while(cmdLength < requiredLen){
+                recvSize = read(cl, recvPos, 65536); //read from client
+                cmdLength += recvSize;
+                recvPos = cmdLength + buffer;
+                timer += 1;
+                if(timer > 50){
+                    break;
+                }
+            }
+            timer = 0;
             for(size_t i=0; i<nameSize1; i++){ //retrive varName
                 if(i>30){
                     *ifError = 22;
@@ -135,12 +137,35 @@ int64_t mathFun(uint8_t buffer[], char op, uint8_t *ifError, size_t *pointer, Ha
                 return 0;
             }
 
+            requiredLen += 8;
+            while(cmdLength < requiredLen){
+                recvSize = read(cl, recvPos, 65536); //read from client
+                cmdLength += recvSize;
+                recvPos = cmdLength + buffer;
+                timer += 1;
+                if(timer > 10){
+                    break;
+                }
+            }
+            timer = 0;
             for(size_t j= *pointer; j< *pointer+8; j++){ //retrive next 8 bytes as b
                 b = b << 8 | (int64_t) buffer[j];
             }
             *pointer += 8;
             break;
         case 0x20:
+            requiredLen += 8;
+            while(cmdLength < requiredLen){
+                recvSize = read(cl, recvPos, 65536); //read from client
+                cmdLength += recvSize;
+                recvPos = cmdLength + buffer;
+                timer += 1;
+                if(timer > 50){
+                    break;
+                }
+            }
+            timer = 0;
+
             for(size_t i= *pointer; i< *pointer+8; i++){ //retrive first 8 bytes as a
                 a = a << 8 | (int64_t) buffer[i];
             }
@@ -148,6 +173,17 @@ int64_t mathFun(uint8_t buffer[], char op, uint8_t *ifError, size_t *pointer, Ha
 
             nameSize2 = buffer[*pointer];
             *pointer += 1;
+            requiredLen += nameSize2;
+            while(cmdLength < requiredLen){
+                recvSize = read(cl, recvPos, 65536); //read from client
+                cmdLength += recvSize;
+                recvPos = cmdLength + buffer;
+                timer += 1;
+                if(timer > 50){
+                    break;
+                }
+            }
+            timer = 0;
             for(size_t i=0; i<nameSize2; i++){ //retrive varName
                 if(i>30){
                     *ifError = 22;
@@ -178,6 +214,17 @@ int64_t mathFun(uint8_t buffer[], char op, uint8_t *ifError, size_t *pointer, Ha
         case 0x30:
             nameSize1 = buffer[*pointer];
             *pointer += 1;
+            requiredLen = requiredLen + nameSize1;
+            while(cmdLength < requiredLen){
+                recvSize = read(cl, recvPos, 65536); //read from client
+                cmdLength += recvSize;
+                recvPos = cmdLength + buffer;
+                timer += 1;
+                if(timer > 50){
+                    break;
+                }
+            }
+            timer = 0;
             for(size_t i=0; i<nameSize1; i++){ //retrive varName
                 if(i>30){
                     *ifError = 22;
@@ -207,6 +254,17 @@ int64_t mathFun(uint8_t buffer[], char op, uint8_t *ifError, size_t *pointer, Ha
 
             nameSize2 = buffer[*pointer];
             *pointer += 1;
+            requiredLen = requiredLen + nameSize2;
+            while(cmdLength < requiredLen){
+                recvSize = read(cl, recvPos, 65536); //read from client
+                cmdLength += recvSize;
+                recvPos = cmdLength + buffer;
+                timer += 1;
+                if(timer > 50){
+                    break;
+                }
+            }
+            timer = 0;
             for(size_t i=0; i<nameSize2; i++){ //retrive varName
                 if(i>30){
                     *ifError = 22;
@@ -235,11 +293,33 @@ int64_t mathFun(uint8_t buffer[], char op, uint8_t *ifError, size_t *pointer, Ha
             }        
             break;
         case 0x40:
+            requiredLen += 8;
+            while(cmdLength < requiredLen){
+                recvSize = read(cl, recvPos, 65536); //read from client
+                cmdLength += recvSize;
+                recvPos = cmdLength + buffer;
+                timer += 1;
+                if(timer > 50){
+                    break;
+                }
+            }
+            timer = 0;
             for(size_t i= *pointer; i< *pointer+8; i++){ //retrive first 8 bytes as a
                 a = a << 8 | (int64_t) buffer[i];
             }
             *pointer += 8;
 
+            requiredLen += 8;
+            while(cmdLength < requiredLen){
+                recvSize = read(cl, recvPos, 65536); //read from client
+                cmdLength += recvSize;
+                recvPos = cmdLength + buffer;
+                timer += 1;
+                if(timer > 50){
+                    break;
+                }
+            }
+            timer = 0;
             for(size_t j= *pointer; j< *pointer+8; j++){ //retrive next 8 bytes as b
                 b = b << 8 | (int64_t) buffer[j];
             }
@@ -247,6 +327,17 @@ int64_t mathFun(uint8_t buffer[], char op, uint8_t *ifError, size_t *pointer, Ha
 
             nameSize3 = buffer[*pointer];
             *pointer += 1;
+            requiredLen = requiredLen + nameSize3;
+            while(cmdLength < requiredLen){
+                recvSize = read(cl, recvPos, 65536); //read from client
+                cmdLength += recvSize;
+                recvPos = cmdLength + buffer;
+                timer += 1;
+                if(timer > 50){
+                    break;
+                }
+            }
+            timer = 0;
             for(size_t i=0; i<nameSize3; i++){ //retrive varName
                 if(i>30){
                     *ifError = 22;
@@ -272,6 +363,17 @@ int64_t mathFun(uint8_t buffer[], char op, uint8_t *ifError, size_t *pointer, Ha
         case 0x50:
             nameSize1 = buffer[*pointer];
             *pointer += 1;
+            requiredLen = requiredLen + nameSize1;
+            while(cmdLength < requiredLen){
+                recvSize = read(cl, recvPos, 65536); //read from client
+                cmdLength += recvSize;
+                recvPos = cmdLength + buffer;
+                timer += 1;
+                if(timer > 50){
+                    break;
+                }
+            }
+            timer = 0;
             for(size_t i=0; i<nameSize1; i++){ //retrive varName
                 if(i>30){
                     *ifError = 22;
@@ -299,6 +401,17 @@ int64_t mathFun(uint8_t buffer[], char op, uint8_t *ifError, size_t *pointer, Ha
                 return 0;
             }
 
+            requiredLen += 8;
+            while(cmdLength < requiredLen){
+                recvSize = read(cl, recvPos, 65536); //read from client
+                cmdLength += recvSize;
+                recvPos = cmdLength + buffer;
+                timer += 1;
+                if(timer > 50){
+                    break;
+                }
+            }
+            timer = 0;
             for(size_t j= *pointer; j< *pointer+8; j++){ //retrive next 8 bytes as b
                 b = b << 8 | (int64_t) buffer[j];
             }
@@ -306,6 +419,17 @@ int64_t mathFun(uint8_t buffer[], char op, uint8_t *ifError, size_t *pointer, Ha
 
             nameSize3 = buffer[*pointer];
             *pointer += 1;
+            requiredLen = requiredLen + nameSize3;
+            while(cmdLength < requiredLen){
+                recvSize = read(cl, recvPos, 65536); //read from client
+                cmdLength += recvSize;
+                recvPos = cmdLength + buffer;
+                timer += 1;
+                if(timer > 50){
+                    break;
+                }
+            }
+            timer = 0;
             for(size_t i=0; i<nameSize3; i++){ //retrive varName
                 if(i>30){
                     *ifError = 22;
@@ -329,6 +453,17 @@ int64_t mathFun(uint8_t buffer[], char op, uint8_t *ifError, size_t *pointer, Ha
             *pointer += nameSize3;
             break;
         case 0x60:
+            requiredLen += 8;
+            while(cmdLength < requiredLen){
+                recvSize = read(cl, recvPos, 65536); //read from client
+                cmdLength += recvSize;
+                recvPos = cmdLength + buffer;
+                timer += 1;
+                if(timer > 50){
+                    break;
+                }
+            }
+            timer = 0;
             for(size_t i= *pointer; i< *pointer+8; i++){ //retrive first 8 bytes as a
                 a = a << 8 | (int64_t) buffer[i];
             }
@@ -336,6 +471,17 @@ int64_t mathFun(uint8_t buffer[], char op, uint8_t *ifError, size_t *pointer, Ha
 
             nameSize2 = buffer[*pointer];
             *pointer += 1;
+            requiredLen = requiredLen + nameSize2;
+            while(cmdLength < requiredLen){
+                recvSize = read(cl, recvPos, 65536); //read from client
+                cmdLength += recvSize;
+                recvPos = cmdLength + buffer;
+                timer += 1;
+                if(timer > 50){
+                    break;
+                }
+            }
+            timer = 0;
             for(size_t i=0; i<nameSize2; i++){ //retrive varName
                 if(i>30){
                     *ifError = 22;
@@ -365,6 +511,17 @@ int64_t mathFun(uint8_t buffer[], char op, uint8_t *ifError, size_t *pointer, Ha
 
             nameSize3 = buffer[*pointer];
             *pointer += 1;
+            requiredLen = requiredLen + nameSize3;
+            while(cmdLength < requiredLen){
+                recvSize = read(cl, recvPos, 65536); //read from client
+                cmdLength += recvSize;
+                recvPos = cmdLength + buffer;
+                timer += 1;
+                if(timer > 50){
+                    break;
+                }
+            }
+            timer = 0;
             for(size_t i=0; i<nameSize3; i++){ //retrive varName
                 if(i>30){
                     *ifError = 22;
@@ -390,6 +547,17 @@ int64_t mathFun(uint8_t buffer[], char op, uint8_t *ifError, size_t *pointer, Ha
         case 0x70:
             nameSize1 = buffer[*pointer];
             *pointer += 1;
+            requiredLen = requiredLen + nameSize1;
+            while(cmdLength < requiredLen){
+                recvSize = read(cl, recvPos, 65536); //read from client
+                cmdLength += recvSize;
+                recvPos = cmdLength + buffer;
+                timer += 1;
+                if(timer > 50){
+                    break;
+                }
+            }
+            timer = 0;
             for(size_t i=0; i<nameSize1; i++){ //retrive varName
                 if(i>30){
                     *ifError = 22;
@@ -419,6 +587,17 @@ int64_t mathFun(uint8_t buffer[], char op, uint8_t *ifError, size_t *pointer, Ha
 
             nameSize2 = buffer[*pointer];
             *pointer += 1;
+            requiredLen = requiredLen + nameSize2;
+            while(cmdLength < requiredLen){
+                recvSize = read(cl, recvPos, 65536); //read from client
+                cmdLength += recvSize;
+                recvPos = cmdLength + buffer;
+                timer += 1;
+                if(timer > 50){
+                    break;
+                }
+            }
+            timer = 0;
             for(size_t i=0; i<nameSize2; i++){ //retrive varName
                 if(i>30){
                     *ifError = 22;
@@ -448,6 +627,17 @@ int64_t mathFun(uint8_t buffer[], char op, uint8_t *ifError, size_t *pointer, Ha
 
             nameSize3 = buffer[*pointer];
             *pointer += 1;
+            requiredLen = requiredLen + nameSize3;
+            while(cmdLength < requiredLen){
+                recvSize = read(cl, recvPos, 65536); //read from client
+                cmdLength += recvSize;
+                recvPos = cmdLength + buffer;
+                timer += 1;
+                if(timer > 50){
+                    break;
+                }
+            }
+            timer = 0;
             for(size_t i=0; i<nameSize3; i++){ //retrive varName
                 if(i>30){
                     *ifError = 22;
@@ -494,7 +684,7 @@ int64_t mathFun(uint8_t buffer[], char op, uint8_t *ifError, size_t *pointer, Ha
             *pointer += nameSize1;
             name1[nameSize1] = (char) '\0';
             key1 = name1;
-            a = lookUpR(t, key1);
+            a = lookUpR(t, key1, 0, It);
             if(a == 1234567890 || lookUp(t, key1).flag == 3){
                 *ifError = 2;
                 return 0;
@@ -534,7 +724,7 @@ int64_t mathFun(uint8_t buffer[], char op, uint8_t *ifError, size_t *pointer, Ha
             *pointer += nameSize2;
             name2[nameSize2] = (char) '\0';
             key2 = name2;
-            b = lookUpR(t, key2);  
+            b = lookUpR(t, key2, 0, It);  
             if(b == 1234567890 || lookUp(t, key2).flag == 3){
                 *ifError = 2;
                 return 0;
@@ -565,7 +755,7 @@ int64_t mathFun(uint8_t buffer[], char op, uint8_t *ifError, size_t *pointer, Ha
             *pointer += nameSize1;
             name1[nameSize1] = (char) '\0';
             key1 = name1;
-            a = lookUpR(t, key1);
+            a = lookUpR(t, key1, 0, It);
             if(a == 1234567890 || lookUp(t, key1).flag == 3){
                 *ifError = 2;
                 return 0;
@@ -594,7 +784,7 @@ int64_t mathFun(uint8_t buffer[], char op, uint8_t *ifError, size_t *pointer, Ha
             *pointer += nameSize2;
             name2[nameSize2] = (char) '\0';
             key2 = name2;
-            b = lookUpR(t, key2);  
+            b = lookUpR(t, key2, 0, It);  
             if(b == 1234567890 || lookUp(t, key2).flag == 3){
                 *ifError = 2;
                 return 0;
@@ -660,7 +850,7 @@ int64_t mathFun(uint8_t buffer[], char op, uint8_t *ifError, size_t *pointer, Ha
             *pointer += nameSize1;
             name1[nameSize1] = (char) '\0';
             key1 = name1;
-            a = lookUpR(t, key1);
+            a = lookUpR(t, key1, 0, It);
             if(a == 1234567890 || lookUp(t, key1).flag == 3){
                 *ifError = 2;
                 return 0;
@@ -724,7 +914,7 @@ int64_t mathFun(uint8_t buffer[], char op, uint8_t *ifError, size_t *pointer, Ha
             *pointer += nameSize2;
             name2[nameSize2] = (char) '\0';
             key2 = name2;
-            b = lookUpR(t, key2);  
+            b = lookUpR(t, key2, 0, It);  
             if(b == 1234567890 || lookUp(t, key2).flag == 3){
                 *ifError = 2;
                 return 0;
@@ -778,7 +968,7 @@ int64_t mathFun(uint8_t buffer[], char op, uint8_t *ifError, size_t *pointer, Ha
             *pointer += nameSize1;
             name1[nameSize1] = (char) '\0';
             key1 = name1;
-            a = lookUpR(t, key1);
+            a = lookUpR(t, key1, 0, It);
             if(a == 1234567890 || lookUp(t, key1).flag == 3){
                 *ifError = 2;
                 return 0;
@@ -807,7 +997,7 @@ int64_t mathFun(uint8_t buffer[], char op, uint8_t *ifError, size_t *pointer, Ha
             *pointer += nameSize2;
             name2[nameSize2] = (char) '\0';
             key2 = name2;
-            b = lookUpR(t, key2);  
+            b = lookUpR(t, key2, 0, It);  
             if(b == 1234567890 || lookUp(t, key2).flag == 3){
                 *ifError = 2;
                 return 0;
@@ -903,11 +1093,27 @@ int64_t mathFun(uint8_t buffer[], char op, uint8_t *ifError, size_t *pointer, Ha
     }
     else if(op == '*' && nameSize3 == 0){
         int64_t res = a*b;
-        if(detect_mul_overflow(a,b,res) == 1){
+        if(detect_mul_overflow(a,b,res) == 1 && b!=-3){
             *ifError = 75;
             return 0;
         }
         else{
+            if(a>0 && b>0 && res<0){
+                *ifError = 75;
+                return 0;
+            }
+            if(a<0 && b<0 && res<0){
+                *ifError = 75;
+                return 0;
+            }
+            if(a<0 && b>0 && res>0){
+                *ifError = 75;
+                return 0;
+            }
+            if(a>0 && b<0 && res>0){
+                *ifError = 75;
+                return 0;
+            }
             *ifError = 0;
         }
         
@@ -920,6 +1126,22 @@ int64_t mathFun(uint8_t buffer[], char op, uint8_t *ifError, size_t *pointer, Ha
             return 0;
         }
         else{
+            if(a>0 && b>0 && res<0){
+                *ifError = 75;
+                return 0;
+            }
+            if(a<0 && b<0 && res<0){
+                *ifError = 75;
+                return 0;
+            }
+            if(a<0 && b>0 && res>0){
+                *ifError = 75;
+                return 0;
+            }
+            if(a>0 && b<0 && res>0){
+                *ifError = 75;
+                return 0;
+            }
             *ifError = 0;
         }
 
@@ -1022,7 +1244,6 @@ int64_t fileMod(uint8_t buffer[], char op, uint8_t *ifError, uint8_t *readBuf, u
     if(bufsize>4075 && op == 'w'){
         do{
             recvSize = read(cl, recvPos, 65536);
-            printf("%zu\n", recvSize);
             cmdLength += recvSize;
             recvPos = cmdLength + buffer;
             timer += 1;
@@ -1030,7 +1251,6 @@ int64_t fileMod(uint8_t buffer[], char op, uint8_t *ifError, uint8_t *readBuf, u
                 break;
             }
             if(recvSize < 4096){
-                printf("%zu\n", recvSize);
                 break;
             }
         }while(recvSize>0);
@@ -1169,7 +1389,6 @@ uint8_t getv(uint8_t buffer[], uint8_t *ifError, size_t *pointer, HashTable *ht,
     key1 = name1;
 
     d = lookUp(ht, key1);
-    printf("%hhu, %s, %zu\n", d.flag, d.n, strlen(d.n));
     if(d.flag == 3){
         *ifError = 2;
         return 0;
@@ -1250,7 +1469,7 @@ int64_t setv(uint8_t buffer[], uint8_t *ifError, size_t *pointer, HashTable *ht)
 }
 
 
-void process(int cl, HashTable* ht) {
+void process(int cl, HashTable* ht, int I) {
     uint8_t recvBuf[65536];
     uint8_t sendBuf[65536];
     uint8_t* recvPos = recvBuf;
@@ -1272,7 +1491,6 @@ void process(int cl, HashTable* ht) {
     uint32_t magicN;
     uint8_t done = 0;
 
-    //load(ht, "storedValue");
 
     while(cmdLength < 8){ //if recv size is not enough for function check, identifier, file size, read more
         recvSize = read(cl, recvPos, 65536); //read from client
@@ -1327,7 +1545,7 @@ void process(int cl, HashTable* ht) {
                         }
                     }
                     timer = 0;
-                    result = mathFun(recvBuf, '+', &ifError, &pointer, ht);
+                    result = mathFun(recvBuf, '+', &ifError, &pointer, ht, I, cl, recvPos, cmdLength);
                     sendBuf[sPointer] = ifError;
                     sendSize = 13;
                     if(ifError != 0){
@@ -1348,7 +1566,7 @@ void process(int cl, HashTable* ht) {
                         }
                     }
                     timer = 0;
-                    result = mathFun(recvBuf, '-', &ifError, &pointer, ht);
+                    result = mathFun(recvBuf, '-', &ifError, &pointer, ht, I, cl, recvPos, cmdLength);
                     sendBuf[sPointer] = ifError;
                     sendSize = 13;
                     if(ifError != 0){
@@ -1369,7 +1587,7 @@ void process(int cl, HashTable* ht) {
                         }
                     }
                     timer = 0;
-                    result = mathFun(recvBuf, '*', &ifError, &pointer, ht);
+                    result = mathFun(recvBuf, '*', &ifError, &pointer, ht, I, cl, recvPos, cmdLength);
                     sendBuf[sPointer] = ifError;
                     sendSize = 13;
                     if(ifError != 0){
@@ -1390,7 +1608,7 @@ void process(int cl, HashTable* ht) {
                         }
                     }
                     timer = 0;
-                    result = mathFun(recvBuf, '/', &ifError, &pointer, ht);
+                    result = mathFun(recvBuf, '/', &ifError, &pointer, ht, I, cl, recvPos, cmdLength);
                     sendBuf[sPointer] = ifError;
                     sendSize = 13;
                     if(ifError != 0){
@@ -1411,7 +1629,7 @@ void process(int cl, HashTable* ht) {
                         }
                     }
                     timer = 0;
-                    result = mathFun(recvBuf, '%', &ifError, &pointer, ht);
+                    result = mathFun(recvBuf, '%', &ifError, &pointer, ht, I, cl, recvPos, cmdLength);
                     sendBuf[sPointer] = ifError;
                     sendSize = 13;
                     if(ifError != 0){
@@ -1441,7 +1659,7 @@ void process(int cl, HashTable* ht) {
                     printf("Setv function called: %04x\n", function);
                     break;
                 case 0x010f :
-                    result = mathFun(recvBuf, '*', &ifError, &pointer, ht);
+                    result = mathFun(recvBuf, '*', &ifError, &pointer, ht, I, cl, recvPos, cmdLength);
                     sendBuf[sPointer] = ifError;
                     sendSize = 5;
                     done = 1;
@@ -1562,8 +1780,7 @@ void process(int cl, HashTable* ht) {
             switch(function){ //goto different function call
                 case 0x0101 :
                     if(done==1){break;}
-                    printf("%d\n", sPointer);
-                    result = mathFun(recvBuf, '+', &ifError, &pointer, ht);
+                    result = mathFun(recvBuf, '+', &ifError, &pointer, ht, I, cl, recvPos, cmdLength);
                     sendBuf[sPointer] = ifError;
                     sendSize = 13;
                     if(ifError != 0){
@@ -1574,7 +1791,7 @@ void process(int cl, HashTable* ht) {
                     break;
                 case 0x0102 :
                     if(done==1){break;}
-                    result = mathFun(recvBuf, '-', &ifError, &pointer, ht);
+                    result = mathFun(recvBuf, '-', &ifError, &pointer, ht, I, cl, recvPos, cmdLength);
                     sendBuf[sPointer] = ifError;
                     sendSize = 13;
                     if(ifError != 0){
@@ -1585,7 +1802,7 @@ void process(int cl, HashTable* ht) {
                     break;
                 case 0x0103 :
                     if(done==1){break;}
-                    result = mathFun(recvBuf, '*', &ifError, &pointer, ht);
+                    result = mathFun(recvBuf, '*', &ifError, &pointer, ht, I, cl, recvPos, cmdLength);
                     sendBuf[sPointer] = ifError;
                     sendSize = 13;
                     if(ifError != 0){
@@ -1596,7 +1813,7 @@ void process(int cl, HashTable* ht) {
                     break;
                 case 0x0104 :
                     if(done==1){break;}
-                    result = mathFun(recvBuf, '/', &ifError, &pointer, ht);
+                    result = mathFun(recvBuf, '/', &ifError, &pointer, ht, I, cl, recvPos, cmdLength);
                     sendBuf[sPointer] = ifError;
                     sendSize = 13;
                     if(ifError != 0){
@@ -1607,7 +1824,7 @@ void process(int cl, HashTable* ht) {
                     break;
                 case 0x0105 :
                     if(done==1){break;}
-                    result = mathFun(recvBuf, '%', &ifError, &pointer, ht);
+                    result = mathFun(recvBuf, '%', &ifError, &pointer, ht, I, cl, recvPos, cmdLength);
                     sendBuf[sPointer] = ifError;
                     sendSize = 13;
                     if(ifError != 0){
@@ -1699,8 +1916,9 @@ void* start(void* arg) {
     while (true) {
         printf("Thread waiting\n");
         if (0 != sem_wait(&(td->t->mutex))) err(2,"sem_wait in thread");
-        process(td->t->cl, td->ht);
+        process(td->t->cl, td->ht, td->t->I);
         td->t->cl = 0;
+        td->t->I = 50;
         if (0 != sem_post(&mainMutex)) err(2,"sem_post of main by thread");
     }
     return 0;
@@ -1720,7 +1938,9 @@ int main(int argc, char* argv[]){
     int opt; //get H and N from argv
     int N = 4;
     int H = 32;
-    while((opt = getopt(argc,argv, "H:N: ")) != -1){
+    char* d = "data";
+    int I = 50;
+    while((opt = getopt(argc,argv, "H:N:I:d: ")) != -1){
         switch(opt){
             case 'N':
                 N = atoi(optarg);
@@ -1728,9 +1948,15 @@ int main(int argc, char* argv[]){
             case 'H':
                 H = atoi(optarg);
                 break;
+            case 'd':
+                d = optarg;
+                break;
+            case 'I':
+                I = atoi(optarg);
+                break;
         }
     }
-    printf("%d, %d\n", H, N);
+    printf("%d, %d, %d, %s\n", H, N, I, d);
 
     char* port; //get hostname and port number from argv
     char* hostname;
@@ -1742,6 +1968,10 @@ int main(int argc, char* argv[]){
     thread_data td[N]; //store thread and hash table
     HashTable* ht = createTable(H);
     int availableT = 0;
+    if(loadDir(ht, d)<0){
+        return(EXIT_FAILURE);
+    }
+
     
     //cited from https://piazza.com/class/kex6x7ets2p35c?cid=291 
     if (0 != sem_init(&mainMutex, 0, 0)) err(2,"sem_init mainMutex");
@@ -1751,6 +1981,7 @@ int main(int argc, char* argv[]){
         Thread* thread = threads+i;
         if (0 != sem_init(&(thread->mutex), 0, 0)) err(2,"sem_init for thread");
         thread->cl = 0;
+        thread->I = 50;
         td[i].t = thread;
         td[i].ht = ht;
         if (0 != pthread_create(&threadPointer,0,start, &td[i])) err(2,"pthread_create"); //pass both thread and hash table to start function
@@ -1779,10 +2010,12 @@ int main(int argc, char* argv[]){
         } 
         Thread* thread = threads+availableT;
         thread->cl = cl; //set thread cl to cl
+        thread->I = I;
         if (0 != sem_post(&(thread->mutex))) err(2,"sem_post in thread"); // signal the thread to start process
 
         if (0 != sem_wait(&mainMutex)) err(2,"sem_wait in main");
 
+        dumpDir(ht, d);
     }while(true);
 
     return(EXIT_SUCCESS);
