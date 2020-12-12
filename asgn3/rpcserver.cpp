@@ -59,6 +59,7 @@ int64_t mathFun(uint8_t buffer[], char op, uint8_t *ifError, size_t *pointer, Ha
     char* key3;
     int64_t a = 0;
     int64_t b = 0;
+    union data d;
     size_t requiredLen = 7;
     size_t recvSize;
     int timer = 0;
@@ -131,9 +132,14 @@ int64_t mathFun(uint8_t buffer[], char op, uint8_t *ifError, size_t *pointer, Ha
             name1[nameSize1] = (char) '\0';
             *pointer += nameSize1;
             key1 = name1;
-            a = lookUp(t, key1).v;
-            if(a == 1234567890 || lookUp(t, key1).flag == 3){
+            d = lookUp(t, key1);
+            a = d.v;
+            if(a == 1234567890 || d.flag == 3){
                 *ifError = 2;
+                return 0;
+            }
+            if(d.flag == 4){
+                *ifError = 14;
                 return 0;
             }
 
@@ -205,11 +211,16 @@ int64_t mathFun(uint8_t buffer[], char op, uint8_t *ifError, size_t *pointer, Ha
             *pointer += nameSize2;
             name2[nameSize2] = (char) '\0';
             key2 = name2;
-            b = lookUp(t, key2).v;  
-            if(b == 1234567890 || lookUp(t, key2).flag == 3){
+            d = lookUp(t, key2);
+            b = d.v;  
+            if(b == 1234567890 || d.flag == 3){
                 *ifError = 2;
                 return 0;
             }        
+            if(d.flag == 4){
+                *ifError = 14;
+                return 0;
+            }
             break;
         case 0x30:
             nameSize1 = buffer[*pointer];
@@ -246,9 +257,14 @@ int64_t mathFun(uint8_t buffer[], char op, uint8_t *ifError, size_t *pointer, Ha
             *pointer += nameSize1;
             name1[nameSize1] = (char) '\0';
             key1 = name1;
-            a = lookUp(t, key1).v;
-            if(a == 1234567890 || lookUp(t, key1).flag == 3){
+            d = lookUp(t, key1);
+            a = d.v;
+            if(a == 1234567890 || d.flag == 3){
                 *ifError = 2;
+                return 0;
+            }
+            if(d.flag == 4){
+                *ifError = 14;
                 return 0;
             }
 
@@ -286,11 +302,16 @@ int64_t mathFun(uint8_t buffer[], char op, uint8_t *ifError, size_t *pointer, Ha
             *pointer += nameSize2;
             name2[nameSize2] = (char) '\0';
             key2 = name2;
-            b = lookUp(t, key2).v;    
-            if(b == 1234567890 || lookUp(t, key2).flag == 3){
+            d = lookUp(t, key2);
+            b = d.v;    
+            if(b == 1234567890 || d.flag == 3){
                 *ifError = 2;
                 return 0;
-            }        
+            }       
+            if(d.flag == 4){
+                *ifError = 14;
+                return 0;
+            }
             break;
         case 0x40:
             requiredLen += 8;
@@ -395,9 +416,14 @@ int64_t mathFun(uint8_t buffer[], char op, uint8_t *ifError, size_t *pointer, Ha
             *pointer += nameSize1;
             name1[nameSize1] = (char) '\0';
             key1 = name1;
-            a = lookUp(t, key1).v;
-            if(a == 1234567890 || lookUp(t, key1).flag == 3){
+            d = lookUp(t, key1);
+            a = d.v;
+            if(a == 1234567890 || d.flag == 3){
                 *ifError = 2;
+                return 0;
+            }
+            if(d.flag == 4){
+                *ifError = 14;
                 return 0;
             }
 
@@ -503,9 +529,14 @@ int64_t mathFun(uint8_t buffer[], char op, uint8_t *ifError, size_t *pointer, Ha
             *pointer += nameSize2;
             name2[nameSize2] = (char) '\0';
             key2 = name2;
-            b = lookUp(t, key2).v;   
-            if(b == 1234567890 || lookUp(t, key2).flag == 3){
+            d = lookUp(t, key2);
+            b = d.v;   
+            if(b == 1234567890 || d.flag == 3){
                 *ifError = 2;
+                return 0;
+            }
+            if(d.flag == 4){
+                *ifError = 14;
                 return 0;
             }
 
@@ -579,9 +610,14 @@ int64_t mathFun(uint8_t buffer[], char op, uint8_t *ifError, size_t *pointer, Ha
             *pointer += nameSize1;
             name1[nameSize1] = (char) '\0';
             key1 = name1;
-            a = lookUp(t, key1).v;
-            if(a == 1234567890 || lookUp(t, key1).flag == 3){
+            d = lookUp(t, key1);
+            a = d.v;
+            if(a == 1234567890 || d.flag == 3){
                 *ifError = 2;
+                return 0;
+            }
+            if(d.flag == 4){
+                *ifError = 14;
                 return 0;
             }
 
@@ -619,11 +655,16 @@ int64_t mathFun(uint8_t buffer[], char op, uint8_t *ifError, size_t *pointer, Ha
             *pointer += nameSize2;
             name2[nameSize2] = (char) '\0';
             key2 = name2;
-            b = lookUp(t, key2).v;  
-            if(b == 1234567890 || lookUp(t, key2).flag == 3){
+            d = lookUp(t, key2);
+            b = d.v;  
+            if(b == 1234567890 || d.flag == 3){
                 *ifError = 2;
                 return 0;
             } 
+            if(d.flag == 4){
+                *ifError = 14;
+                return 0;
+            }
 
             nameSize3 = buffer[*pointer];
             *pointer += 1;
@@ -689,6 +730,10 @@ int64_t mathFun(uint8_t buffer[], char op, uint8_t *ifError, size_t *pointer, Ha
                 *ifError = 2;
                 return 0;
             }
+            if(a == 9876543210){
+                *ifError = 40;
+                return 0;
+            }
 
             for(size_t j= *pointer; j< *pointer+8; j++){ //retrive next 8 bytes as b
                 b = b << 8 | (int64_t) buffer[j];
@@ -729,6 +774,10 @@ int64_t mathFun(uint8_t buffer[], char op, uint8_t *ifError, size_t *pointer, Ha
                 *ifError = 2;
                 return 0;
             } 
+            if(b == 9876543210){
+                *ifError = 40;
+                return 0;
+            }
 
             break;
         case 0xb0:
@@ -760,6 +809,10 @@ int64_t mathFun(uint8_t buffer[], char op, uint8_t *ifError, size_t *pointer, Ha
                 *ifError = 2;
                 return 0;
             }
+            if(a == 9876543210){
+                *ifError = 40;
+                return 0;
+            }
 
             nameSize2 = buffer[*pointer];
             *pointer += 1;
@@ -789,7 +842,10 @@ int64_t mathFun(uint8_t buffer[], char op, uint8_t *ifError, size_t *pointer, Ha
                 *ifError = 2;
                 return 0;
             } 
-
+            if(b == 9876543210){
+                *ifError = 40;
+                return 0;
+            }
             break;
         case 0xc0:
             for(size_t i= *pointer; i< *pointer+8; i++){ //retrive first 8 bytes as a
@@ -853,6 +909,10 @@ int64_t mathFun(uint8_t buffer[], char op, uint8_t *ifError, size_t *pointer, Ha
             a = lookUpR(t, key1, 0, It);
             if(a == 1234567890 || lookUp(t, key1).flag == 3){
                 *ifError = 2;
+                return 0;
+            }
+            if(a == 9876543210){
+                *ifError = 40;
                 return 0;
             }
 
@@ -919,6 +979,10 @@ int64_t mathFun(uint8_t buffer[], char op, uint8_t *ifError, size_t *pointer, Ha
                 *ifError = 2;
                 return 0;
             } 
+            if(b == 9876543210){
+                *ifError = 40;
+                return 0;
+            }
 
             nameSize3 = buffer[*pointer];
             *pointer += 1;
@@ -973,6 +1037,10 @@ int64_t mathFun(uint8_t buffer[], char op, uint8_t *ifError, size_t *pointer, Ha
                 *ifError = 2;
                 return 0;
             }
+            if(a == 9876543210){
+                *ifError = 40;
+                return 0;
+            }
 
             nameSize2 = buffer[*pointer];
             *pointer += 1;
@@ -1002,6 +1070,10 @@ int64_t mathFun(uint8_t buffer[], char op, uint8_t *ifError, size_t *pointer, Ha
                 *ifError = 2;
                 return 0;
             } 
+            if(b == 9876543210){
+                *ifError = 40;
+                return 0;
+            }
 
             nameSize3 = buffer[*pointer];
             *pointer += 1;
@@ -1392,11 +1464,12 @@ uint8_t getv(uint8_t buffer[], uint8_t *ifError, size_t *pointer, HashTable *ht,
     name1[nameSize1] = (char) '\0';
     key1 = name1;
 
-    d = lookUp(ht, key1);
+    d = lookUpVN(ht, key1);
+    printf("v: %ld, flag: %d, name: %zu\n", d.v, d.flag, strlen(d.n));
     if(d.flag == 3){
         *ifError = 2;
         return 0;
-    }else if(strlen(d.n) == 0){
+    }else if(d.flag == 4){
         *ifError = 14;
         return 0;
     }else{
@@ -1765,13 +1838,14 @@ void process(int cl, HashTable* ht, int I) {
                     }                        
                     pointer += 4;
                     if(magicN == 0x0badbad0){
-                        //freeTable(ht);
+                        freeTable(ht);
                         printf("clear\n");
                     }else{
                         ifError = 22;
                     }
                     sendBuf[sPointer] = ifError; 
                     sendSize = 5;
+                    printAll(ht);
                     printf("Clear function called: %04x\n", function);
                 default :
                     break;
@@ -1923,6 +1997,7 @@ void* start(void* arg) {
         process(td->t->cl, td->ht, td->t->I);
         td->t->cl = 0;
         td->t->I = 50;
+        printf("Thread finishes job\n");
         if (0 != sem_post(&mainMutex)) err(2,"sem_post of main by thread");
     }
     return 0;
@@ -1939,7 +2014,7 @@ int findWorker(Thread* tl, int N){ //return the available thread index
 }
 
 int main(int argc, char* argv[]){
-    int opt; //get H and N from argv
+    int opt; //get H, N, I, and d from argv
     int N = 4;
     int H = 32;
     char* d = "data";
@@ -1989,9 +2064,9 @@ int main(int argc, char* argv[]){
         if (0 != sem_init(&(thread->mutex), 0, 0)) err(2,"sem_init for thread");
         thread->cl = 0;
         thread->I = 50;
-        td[i].t = thread;
-        td[i].ht = ht;
-        if (0 != pthread_create(&threadPointer,0,start, &td[i])) err(2,"pthread_create"); //pass both thread and hash table to start function
+        td[0].t = thread;
+        td[0].ht = ht;
+        if (0 != pthread_create(&threadPointer,0,start, &td[0])) err(2,"pthread_create"); //pass both thread and hash table to start function
     }
 
     struct hostent *hent = gethostbyname(hostname); //setup sockets

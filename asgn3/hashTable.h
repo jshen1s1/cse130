@@ -45,6 +45,8 @@ int del(HashTable* t, char* k);
 
 data lookUp(HashTable* t, char* k);
 
+data lookUpVN(HashTable* t, char* k);
+
 int64_t lookUpR(HashTable* t, char* k, int times, int end);
 
 void printAll(HashTable* t);

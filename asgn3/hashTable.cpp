@@ -201,10 +201,36 @@ data lookUp(HashTable* t, char* k){
         if(strcmp(curr->key, k) == 0){
             if(curr->flag == 0){
                 res.v = (int64_t) curr->value;
+                return res;
+            }else{
+                res.flag = 4;
+                return res;
+            }  
+        }
+        if(curr-> next == NULL){
+            res.flag = 3;
+            return res;
+        }
+        curr = curr->next;
+    }
+    res.flag = 3;
+    return res;
+}
+
+data lookUpVN(HashTable* t, char* k){
+    unsigned int index = DJBHash(k, strlen(k)) % t->size;
+    union data res;
+    res.v = 1234567890;
+    Ht_item* curr = t->items[index];
+    while(curr != NULL){
+        if(strcmp(curr->key, k) == 0){
+            if(curr->flag == 0){
+                res.flag = 4;
+                return res;
             }else{
                 strcpy(res.n, curr->value2);
+                return res;
             }
-            return res;
         }
         if(curr-> next == NULL){
             res.flag = 3;
@@ -218,7 +244,7 @@ data lookUp(HashTable* t, char* k){
 
 int64_t lookUpR(HashTable* t, char* k, int times, int end){
     if(times>=end){
-        return 1234567890;
+        return 9876543210;
     }
     times += 1;
     unsigned int index = DJBHash(k, strlen(k)) % t->size;
@@ -336,6 +362,7 @@ int dumpDir(HashTable* t, char* d){
 int load(HashTable* t, char* fileName){
     char str[5000]; 
     char* k;
+    char* k2;
     char varName[32];
     int64_t v;
     int64_t fd = open(fileName, O_RDWR);
@@ -349,23 +376,28 @@ int load(HashTable* t, char* fileName){
     if(fp){
         while(fscanf(fp, "%s", str) != EOF){
             k = strtok(str, s);
-            v = (int64_t) atoi(strtok(NULL, s));
+            k2 = strtok(NULL, s);
             strcpy(varName, k);
             for(size_t i=0; i<strlen(k); i++){
                 if(i>30){
-                    return 22;
+                    return -1;
                 }
                 if(i==0){
                     if(varName[0]<65 || (varName[0]>90 && varName[0]<97) || varName[0]>122){
-                        return 22;
+                        return -1;
                     }
                 }else{
                     if(varName[i]<48 || (varName[i]>57 && varName[i]<65) || (varName[i]>90 && varName[i]<95) || varName[i] == 96 || varName[i]>122){
-                        return 22;
+                        return -1;
                     }
                 }
             }
-            insert(t, k, v);
+            if(atoi(k2) != 0){
+                v = (int64_t) atoi(k2);
+                insert(t, k, v);
+            }else{
+                insert2(t, k, k2);
+            }
         }
     }else{
         printf("Error\n");   
@@ -380,7 +412,9 @@ int load(HashTable* t, char* fileName){
 int loadDir(HashTable* t, char* d){
     char str[5000]; 
     char* k;
+    char* k2;
     char varName[32];
+    //char varName[32];
     int64_t v;
     int64_t dir_fd = open (d, O_DIRECTORY | O_PATH);
     const char* s = "=";
@@ -398,7 +432,7 @@ int loadDir(HashTable* t, char* d){
     if(fp){
         while(fscanf(fp, "%s", str) != EOF){
             k = strtok(str, s);
-            v = (int64_t) atoi(strtok(NULL, s));
+            k2 = strtok(NULL, s);
             strcpy(varName, k);
             for(size_t i=0; i<strlen(k); i++){
                 if(i>30){
@@ -414,7 +448,12 @@ int loadDir(HashTable* t, char* d){
                     }
                 }
             }
-            insert(t, k, v);
+            if(atoi(k2) != 0){
+                v = (int64_t) atoi(k2);
+                insert(t, k, v);
+            }else{
+                insert2(t, k, k2);
+            }
         }
     }else{
         printf("Error\n");   
