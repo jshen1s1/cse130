@@ -23,34 +23,34 @@ int detect_mul_overflow(int64_t a, int64_t b, int64_t result){
     return 0;
 }
 
-int64_t mathFun(uint8_t buffer[], char op, uint8_t *ifError, size_t *pointer, HashTable* t, int It, int cl, uint8_t* recvPos, size_t cmdLength){ //contains add, sub, mul, div, mod 
-    uint8_t oprand;
-    uint16_t nameSize1 = 0;
-    uint16_t nameSize2 = 0;
-    uint16_t nameSize3 = 0;
+int64_t mathFun(uint8_t buffer[], char op, uint8_t *ifError, size_t *pointer, HashTable* t, int It, int cl, uint8_t* recvPos, size_t cmdLength, char* d){ //contains add, sub, mul, div, mod 
+    uint8_t oprand; //number of oprands
+    uint16_t nameSize1 = 0; //varible a
+    uint16_t nameSize2 = 0; //varible b
+    uint16_t nameSize3 = 0; //varible c
     char name1[32];
     char name2[32];
     char name3[32];
     char* key1;
     char* key2;
     char* key3;
-    int64_t a = 0;
-    int64_t b = 0;
-    size_t requiredLen = 7;
-    size_t recvSize;
+    int64_t a = 0; //finial a
+    int64_t b = 0; //finial b
+    size_t requiredLen = 7; //dynamic length checker
+    size_t recvSize; //size read each time
     int timer = 0;
 
     oprand = buffer[1] & 0xf0;
-    if(buffer[1] == 0x0f){
+    if(buffer[1] == 0x0f){ //if del is called
         nameSize1 = buffer[*pointer];
         *pointer += 1;
         for(size_t i=0; i<nameSize1; i++){ //retrive varName
-            if(i>30){
+            if(i>30){ //check length
                 *ifError = 22;
                 return 0;
             }
             name1[i] = (char) buffer[i+*pointer];
-            if(i==0){
+            if(i==0){ //if name vaild
                 if(name1[0]<65 || (name1[0]>90 && name1[0]<97) || name1[0]>122){
                     *ifError = 22;
                     return 0;
@@ -65,15 +65,17 @@ int64_t mathFun(uint8_t buffer[], char op, uint8_t *ifError, size_t *pointer, Ha
         name1[nameSize1] = (char) '\0';
         *pointer += nameSize1;
         key1 = name1;
-        if(del(t,key1) < 0){
+        if(del(t,key1) < 0){ //remove from hashtable
+            dumpDir(t, d);
             *ifError = 2;
             return 0;
         }
+        dumpDir(t, d);
         return 0;
     }
 
     switch(oprand){
-        case 0x10:
+        case 0x10: //a is oprand
             nameSize1 = buffer[*pointer];
             *pointer += 1;
             requiredLen = requiredLen + nameSize1;
@@ -108,12 +110,12 @@ int64_t mathFun(uint8_t buffer[], char op, uint8_t *ifError, size_t *pointer, Ha
             name1[nameSize1] = (char) '\0';
             *pointer += nameSize1;
             key1 = name1;
-            a = lookUp(t, key1);
-            if(a == 1234567890){
+            a = lookUp(t, key1); //get a value from hashtable 
+            if(a == 1234567890){ //no such varible
                 *ifError = 2;
                 return 0;
             }
-            if(a == 9999){
+            if(a == 9999){ //value is a variable name
                 *ifError = 14;
                 return 0;
             }
@@ -134,7 +136,7 @@ int64_t mathFun(uint8_t buffer[], char op, uint8_t *ifError, size_t *pointer, Ha
             }
             *pointer += 8;
             break;
-        case 0x20:
+        case 0x20: //b is oprand
             requiredLen += 8;
             while(cmdLength < requiredLen){
                 recvSize = read(cl, recvPos, 65536); //read from client
@@ -196,7 +198,7 @@ int64_t mathFun(uint8_t buffer[], char op, uint8_t *ifError, size_t *pointer, Ha
                 return 0;
             }
             break;
-        case 0x30:
+        case 0x30: //a b both oprand
             nameSize1 = buffer[*pointer];
             *pointer += 1;
             requiredLen = requiredLen + nameSize1;
@@ -285,7 +287,7 @@ int64_t mathFun(uint8_t buffer[], char op, uint8_t *ifError, size_t *pointer, Ha
                 return 0;
             }
             break;
-        case 0x40:
+        case 0x40: //result is oprand
             requiredLen += 8;
             while(cmdLength < requiredLen){
                 recvSize = read(cl, recvPos, 65536); //read from client
@@ -353,7 +355,7 @@ int64_t mathFun(uint8_t buffer[], char op, uint8_t *ifError, size_t *pointer, Ha
             key3 = name3;
             *pointer += nameSize3;
             break;
-        case 0x50:
+        case 0x50: //a result oprand
             nameSize1 = buffer[*pointer];
             *pointer += 1;
             requiredLen = requiredLen + nameSize1;
@@ -449,7 +451,7 @@ int64_t mathFun(uint8_t buffer[], char op, uint8_t *ifError, size_t *pointer, Ha
             key3 = name3;
             *pointer += nameSize3;
             break;
-        case 0x60:
+        case 0x60: //b result oprand
             requiredLen += 8;
             while(cmdLength < requiredLen){
                 recvSize = read(cl, recvPos, 65536); //read from client
@@ -545,7 +547,7 @@ int64_t mathFun(uint8_t buffer[], char op, uint8_t *ifError, size_t *pointer, Ha
             key3 = name3;
             *pointer += nameSize3;
             break;
-        case 0x70:
+        case 0x70: //a b result oprand
             nameSize1 = buffer[*pointer];
             *pointer += 1;
             requiredLen = requiredLen + nameSize1;
@@ -669,7 +671,7 @@ int64_t mathFun(uint8_t buffer[], char op, uint8_t *ifError, size_t *pointer, Ha
             key3 = name3;
             *pointer += nameSize3;
             break;
-        case 0x90:
+        case 0x90: //with flag 0x80, oprand a
             nameSize1 = buffer[*pointer];
             *pointer += 1;
             for(size_t i=0; i<nameSize1; i++){ //retrive varName
@@ -708,7 +710,7 @@ int64_t mathFun(uint8_t buffer[], char op, uint8_t *ifError, size_t *pointer, Ha
             }
             *pointer += 8;
             break;
-        case 0xa0:
+        case 0xa0: //with flag 0x80, oprand b
             for(size_t i= *pointer; i< *pointer+8; i++){ //retrive first 8 bytes as a
                 a = a << 8 | (int64_t) buffer[i];
             }
@@ -748,7 +750,7 @@ int64_t mathFun(uint8_t buffer[], char op, uint8_t *ifError, size_t *pointer, Ha
             }
 
             break;
-        case 0xb0:
+        case 0xb0: //with flag 0x80, oprand a b
             nameSize1 = buffer[*pointer];
             *pointer += 1;
             for(size_t i=0; i<nameSize1; i++){ //retrive varName
@@ -815,7 +817,7 @@ int64_t mathFun(uint8_t buffer[], char op, uint8_t *ifError, size_t *pointer, Ha
                 return 0;
             }
             break;
-        case 0xc0:
+        case 0xc0: //with flag 0x80, oprand result
             for(size_t i= *pointer; i< *pointer+8; i++){ //retrive first 8 bytes as a
                 a = a << 8 | (int64_t) buffer[i];
             }
@@ -850,7 +852,7 @@ int64_t mathFun(uint8_t buffer[], char op, uint8_t *ifError, size_t *pointer, Ha
             key3 = name3;
             *pointer += nameSize3;
             break;
-        case 0xd0:
+        case 0xd0: //with flag 0x80, oprand a result
             nameSize1 = buffer[*pointer];
             *pointer += 1;
             for(size_t i=0; i<nameSize1; i++){ //retrive varName
@@ -913,7 +915,7 @@ int64_t mathFun(uint8_t buffer[], char op, uint8_t *ifError, size_t *pointer, Ha
             key3 = name3;
             *pointer += nameSize3;
             break;
-        case 0xe0:
+        case 0xe0: //with flag 0x80, oprand b result
             for(size_t i= *pointer; i< *pointer+8; i++){ //retrive first 8 bytes as a
                 a = a << 8 | (int64_t) buffer[i];
             }
@@ -976,7 +978,7 @@ int64_t mathFun(uint8_t buffer[], char op, uint8_t *ifError, size_t *pointer, Ha
             key3 = name3;
             *pointer += nameSize3;
             break;
-        case 0xf0:
+        case 0xf0: //with flag 0x80, oprand a b result
             nameSize1 = buffer[*pointer];
             *pointer += 1;
             for(size_t i=0; i<nameSize1; i++){ //retrive varName
@@ -1067,7 +1069,7 @@ int64_t mathFun(uint8_t buffer[], char op, uint8_t *ifError, size_t *pointer, Ha
             key3 = name3;
             *pointer += nameSize3;
             break;
-        default:
+        default: //no oprand
             for(size_t i= *pointer; i< *pointer+8; i++){ //retrive first 8 bytes as a
                 a = a << 8 | (int64_t) buffer[i];
             }
@@ -1081,7 +1083,7 @@ int64_t mathFun(uint8_t buffer[], char op, uint8_t *ifError, size_t *pointer, Ha
     }
 
     printf("a: %ld b: %ld\n", a, b);
-    if(op == '+' && nameSize3 == 0){ 
+    if(op == '+' && nameSize3 == 0){ //add opration without insert
         if(a > (LONG_MAX - b) && b > 0){ //overflow test
             *ifError = 75; //set ifError to 75 if overflow
         }
@@ -1093,7 +1095,7 @@ int64_t mathFun(uint8_t buffer[], char op, uint8_t *ifError, size_t *pointer, Ha
         }
         return a+b;
     }
-    else if(op == '+' && nameSize3 != 0){
+    else if(op == '+' && nameSize3 != 0){ //add opration with insert
         if(a > (LONG_MAX - b) && b > 0){ //overflow test
             *ifError = 75; //set ifError to 75 if overflow
         }
@@ -1104,9 +1106,10 @@ int64_t mathFun(uint8_t buffer[], char op, uint8_t *ifError, size_t *pointer, Ha
             *ifError = 0;
         }
         insert(t, key3, a+b);
+        dumpDir(t, d);
         return a+b;
     }
-    else if(op == '-' && nameSize3 != 0){
+    else if(op == '-' && nameSize3 != 0){ //sub opration with insert
         if(a > (LONG_MAX + b) && b < 0){ //overflow test
             *ifError = 75;
         }
@@ -1117,9 +1120,10 @@ int64_t mathFun(uint8_t buffer[], char op, uint8_t *ifError, size_t *pointer, Ha
             *ifError = 0;
         }
         insert(t, key3, a-b);
+        dumpDir(t, d);
         return a-b;
     }
-    else if(op == '-' && nameSize3 == 0){
+    else if(op == '-' && nameSize3 == 0){ //sub opration without insert
         if(a > (LONG_MAX + b) && b < 0){ //overflow test
             *ifError = 75;
         }
@@ -1131,7 +1135,7 @@ int64_t mathFun(uint8_t buffer[], char op, uint8_t *ifError, size_t *pointer, Ha
         }
         return a-b;
     }
-    else if(op == '*' && nameSize3 == 0){
+    else if(op == '*' && nameSize3 == 0){ //mu; opration without insert
         int64_t res = a*b;
         if(detect_mul_overflow(a,b,res) == 1){
             *ifError = 75;
@@ -1159,7 +1163,7 @@ int64_t mathFun(uint8_t buffer[], char op, uint8_t *ifError, size_t *pointer, Ha
         
         return a*b;
     }
-    else if(op == '*' && nameSize3 != 0){
+    else if(op == '*' && nameSize3 != 0){ //mul opration with insert
         int64_t res = a*b;
         if(detect_mul_overflow(a,b,res) == 1){
             *ifError = 75;
@@ -1186,9 +1190,10 @@ int64_t mathFun(uint8_t buffer[], char op, uint8_t *ifError, size_t *pointer, Ha
         }
 
         insert(t, key3, a*b);
+        dumpDir(t, d);
         return a*b;
     }
-    else if(op == '/' && nameSize3 == 0){
+    else if(op == '/' && nameSize3 == 0){ //div opration without insert
         if(b == 0){
             *ifError = 22;
             return 0; 
@@ -1199,7 +1204,7 @@ int64_t mathFun(uint8_t buffer[], char op, uint8_t *ifError, size_t *pointer, Ha
         
         return a/b;
     }
-    else if(op == '/' && nameSize3 != 0){
+    else if(op == '/' && nameSize3 != 0){ //add opration with insert
         if(b == 0){
             *ifError = 22;
             return 0; 
@@ -1210,9 +1215,10 @@ int64_t mathFun(uint8_t buffer[], char op, uint8_t *ifError, size_t *pointer, Ha
         }
 
         insert(t, key3, a/b);
+        dumpDir(t, d);
         return a/b;
     }
-    else if(op == '%' && nameSize3 == 0){
+    else if(op == '%' && nameSize3 == 0){ //mod opration without insert
         if(b == 0){
             *ifError = 22;
             return 0; 
@@ -1223,13 +1229,14 @@ int64_t mathFun(uint8_t buffer[], char op, uint8_t *ifError, size_t *pointer, Ha
         
         return a%b;
     }
-    else if(op == '%' && nameSize3 != 0){
+    else if(op == '%' && nameSize3 != 0){ //mod opration with insert
         if(b == 0){
             *ifError = 22;
             return 0; 
         }
         if(a == 0){ 
             insert(t, key3, 0);
+            dumpDir(t, d);
             return 0;
         }
 
@@ -1244,14 +1251,14 @@ int64_t mathFun(uint8_t buffer[], char op, uint8_t *ifError, size_t *pointer, Ha
 }
 
 int64_t fileMod(uint8_t buffer[], char op, uint8_t *ifError, uint8_t *readBuf, uint8_t *sendBuf, int cl, uint8_t* recvPos, size_t cmdLength){ //cotains read, write
-    size_t pointer = 8;
-    char* fileName;
+    size_t pointer = 8; //pointer to recvBuffer
+    char* fileName; //file destination
     uint64_t offset;
     uint16_t bufsize;
-    char fileBuf[8192];
+    char fileBuf[8192]; //write buffer
     uint16_t fileNameSize;
     int64_t fd;
-    int64_t res = 0;
+    int64_t res = 0; //similar as cmdLength
     uint8_t timer = 0;
     size_t recvSize;
 
@@ -1281,7 +1288,7 @@ int64_t fileMod(uint8_t buffer[], char op, uint8_t *ifError, uint8_t *readBuf, u
         return 0;
     }
 
-    if(bufsize>4075 && op == 'w'){
+    if(bufsize>4075 && op == 'w'){ //read more if write opration and input size is large
         do{
             recvSize = read(cl, recvPos, 65536);
             cmdLength += recvSize;
@@ -1306,7 +1313,7 @@ int64_t fileMod(uint8_t buffer[], char op, uint8_t *ifError, uint8_t *readBuf, u
     if(stat(fileName, &st)<0){
         *ifError = 2; //set ifError to 2 if no such file
     }
-    if(op == 'r' && (st.st_size < (int64_t) offset || st.st_size < (int64_t) (bufsize + offset))){
+    if(op == 'r' && (st.st_size < (int64_t) offset || st.st_size < (int64_t) (bufsize + offset))){ //check if read or offset over file size
         *ifError = 22;
         return 0;
     }
@@ -1386,23 +1393,20 @@ int64_t fileFun(uint8_t buffer[], char op, uint8_t *ifError, size_t *pointer, Ha
         }
 		return st.st_size;
     }else if(op == 'd'){
-        *ifError = dump(ht, fileName);
-        if(*ifError < 0){
-            return -1;
-        }
+        *ifError = dump(ht, fileName); //dump to fild
+        return 0;
     }else if(op == 'l'){
-        *ifError = load(ht, fileName);
-        if(*ifError < 0){
+        if(load(ht, fileName) < 0){ //load from file
+            *ifError = 22;
             return -1;
         }
     }
-
     return 0;
 }
 
 uint8_t getv(uint8_t buffer[], uint8_t *ifError, size_t *pointer, HashTable *ht, uint8_t *sendBuf){
-    uint16_t nameSize1 = 0;
-    uint16_t nameSize2 = 0;
+    uint16_t nameSize1 = 0; //variable a
+    uint16_t nameSize2 = 0; //variable b
     char name1[32];
     char name2[32];
     char* key1;
@@ -1411,12 +1415,12 @@ uint8_t getv(uint8_t buffer[], uint8_t *ifError, size_t *pointer, HashTable *ht,
     nameSize1 = buffer[*pointer];
     *pointer += 1;
     for(size_t i=0; i<nameSize1; i++){ //retrive varName
-        if(i>30){
+        if(i>30){ //check key length
             *ifError = 22;
             return 0;
         }
         name1[i] = (char) buffer[i+*pointer];
-        if(i==0){
+        if(i==0){ //if key valid
             if(name1[0]<65 || (name1[0]>90 && name1[0]<97) || name1[0]>122){
                 *ifError = 22;
                 return 0;
@@ -1432,17 +1436,17 @@ uint8_t getv(uint8_t buffer[], uint8_t *ifError, size_t *pointer, HashTable *ht,
     name1[nameSize1] = (char) '\0';
     key1 = name1;
 
-    d = lookUpVN(ht, key1);
-    if(strcmp(d, "NULL") == 0){
+    d = lookUpVN(ht, key1); //search for key-key
+    if(strcmp(d, "NULL") == 0){ //key not found 
         *ifError = 2;
         return 0;
-    }else if(strcmp(d, "NUMBER") == 0){
+    }else if(strcmp(d, "NUMBER") == 0){ //number found
         *ifError = 14;
         return 0;
     }else{
         nameSize2 = strlen(d);
         strcpy(name2, d);
-        for(size_t i=0; i<nameSize2; i++){ 
+        for(size_t i=0; i<nameSize2; i++){  //store to send buffer
             sendBuf[6+i] = name2[i];
         }
 
@@ -1452,9 +1456,9 @@ uint8_t getv(uint8_t buffer[], uint8_t *ifError, size_t *pointer, HashTable *ht,
     return 0;
 }
 
-int64_t setv(uint8_t buffer[], uint8_t *ifError, size_t *pointer, HashTable *ht){
-    uint16_t nameSize1 = 0;
-    uint16_t nameSize2 = 0;
+int64_t setv(uint8_t buffer[], uint8_t *ifError, size_t *pointer, HashTable *ht, char* d){
+    uint16_t nameSize1 = 0; //variable a
+    uint16_t nameSize2 = 0; //variable b
     char name1[32];
     char name2[32];
     char* key1;
@@ -1462,7 +1466,7 @@ int64_t setv(uint8_t buffer[], uint8_t *ifError, size_t *pointer, HashTable *ht)
 
     nameSize1 = buffer[*pointer];
     *pointer += 1;
-    for(size_t i=0; i<nameSize1; i++){ //retrive varName
+    for(size_t i=0; i<nameSize1; i++){ //retrive varName a
         if(i>30){
             *ifError = 22;
             return 0;
@@ -1486,7 +1490,7 @@ int64_t setv(uint8_t buffer[], uint8_t *ifError, size_t *pointer, HashTable *ht)
     
     nameSize2 = buffer[*pointer];
     *pointer += 1;
-    for(size_t i=0; i<nameSize2; i++){ //retrive varName
+    for(size_t i=0; i<nameSize2; i++){ //retrive varName b
         if(i>30){
             *ifError = 22;
             return 0;
@@ -1508,7 +1512,8 @@ int64_t setv(uint8_t buffer[], uint8_t *ifError, size_t *pointer, HashTable *ht)
     name2[nameSize2] = (char) '\0';
     key2 = name2;
 
-    insert2(ht, key1, key2);
+    insert2(ht, key1, key2); //insert key-key
+    dumpDir(ht, d);
     return 0;
 }
 
