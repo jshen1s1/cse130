@@ -17,12 +17,6 @@ typedef struct HashTable{ //hash table with a hash item array and size of the ar
     size_t count;
 }HashTable;
 
-union data{
-    int64_t v;
-    char n[32];
-    uint8_t flag;
-};
-
 unsigned int DJBHash(char* str, unsigned int length);
 
 Ht_item* createItem(char* n, int64_t v);
@@ -43,9 +37,9 @@ void replacement(HashTable* t, char* k, int64_t v);
 
 int del(HashTable* t, char* k);
 
-data lookUp(HashTable* t, char* k);
+int64_t lookUp(HashTable* t, char* k);
 
-data lookUpVN(HashTable* t, char* k);
+char* lookUpVN(HashTable* t, char* k);
 
 int64_t lookUpR(HashTable* t, char* k, int times, int end);
 

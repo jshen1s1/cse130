@@ -10,7 +10,7 @@ TARGET=rpcserver
 #SOURCES=$(TARGET).cpp
 
 # If you had multiple source files, you could do:
-SOURCES=rpcserver.cpp hashTable.cpp 
+SOURCES=rpcserver.cpp hashTable.cpp functions.cpp
 
 # These are the flags used to compile and build your code.
 # This line gives you flags with debugging symbols, which you might find useful.
